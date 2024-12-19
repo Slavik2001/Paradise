@@ -16,6 +16,7 @@
 	dog_fashion = /datum/dog_fashion/head/helmet
 	pickup_sound = 'sound/items/handling/helmet_pickup.ogg'
 	drop_sound = 'sound/items/handling/helmet_drop.ogg'
+	undyeable = TRUE
 	sprite_sheets = list(
 		SPECIES_VOX = 'icons/mob/clothing/species/vox/helmet.dmi',
 		SPECIES_DRASK = 'icons/mob/clothing/species/drask/helmet.dmi',
@@ -34,6 +35,7 @@
 	if(.)
 		clothing_flags ^= visor_clothing_flags
 		flags_inv ^= visor_flags_inv
+		flags_inv_transparent ^= visor_flags_inv_transparent
 
 /obj/item/clothing/head/helmet/detective
 	name = "olive helmet"
@@ -94,7 +96,7 @@
 	dog_fashion = null
 	flags_inv = parent_type::flags_inv|HIDEMASK|HIDEHAIR
 	flags_cover = HEADCOVERSEYES|HEADCOVERSMOUTH
-	flash_protect = 1
+	flash_protect = FLASH_PROTECTION_FLASH
 	sprite_sheets = list(
 		SPECIES_VOX = 'icons/mob/clothing/species/vox/helmet.dmi',
 		SPECIES_GREY = 'icons/mob/clothing/species/grey/helmet.dmi',
@@ -315,7 +317,7 @@
 	desc = "An intimidating tribal helmet, it doesn't look very comfortable."
 	flags_inv = parent_type::flags_inv|HIDEMASK|HIDENAME
 	flags_cover = HEADCOVERSEYES
-	armor = list("melee" = 35, "bullet" = 25, "laser" = 25, "energy" = 10, "bomb" = 25, "bio" = 0, "rad" = 0, "fire" = 50, "acid" = 50)
+	armor = list("melee" = 45, "bullet" = 30, "laser" = 30, "energy" = 20, "bomb" = 40, "bio" = 0, "rad" = 0, "fire" = 50, "acid" = 50)
 	icon_state = "skull"
 	item_state = "skull"
 	strip_delay = 100
@@ -469,3 +471,30 @@
 		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/head.dmi',
 		SPECIES_STOK = 'icons/mob/clothing/species/monkey/head.dmi'
 	)
+
+/obj/item/clothing/head/helmet/biker
+	name = "Motorcycle helmet"
+	desc = "Самый обычный мотоциклетный шлем."
+	armor = list("melee" = 25, "bullet" = 10, "laser" = 30, "energy" = 30, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 30, "acid" = 0)
+	icon_state = "biker"
+	item_state = "biker"
+	flags_inv = HIDEMASK|HIDEHEADSETS|HIDEGLASSES|HIDEHAIR
+	flags_cover = HEADCOVERSEYES|HEADCOVERSMOUTH
+	color = "#161515"
+	sprite_sheets = list(
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/head.dmi'
+	)
+	species_restricted = list(SPECIES_HUMAN, SPECIES_SLIMEPERSON, SPECIES_SKELETON, SPECIES_NUCLEATION, SPECIES_MACNINEPERSON, SPECIES_DIONA, SPECIES_SHADOW_BASIC, SPECIES_MONKEY)
+
+/obj/item/clothing/head/helmet/biker/Initialize(mapload)
+	. = ..()
+	update_icon(UPDATE_OVERLAYS)
+
+/obj/item/clothing/head/helmet/biker/ComponentInitialize()
+	. = ..()
+	AddComponent(/datum/component/spraycan_paintable)
+
+/obj/item/clothing/head/helmet/biker/update_overlays()
+	. = ..()
+	var/mutable_appearance/biker_overlay = mutable_appearance(icon='icons/obj/clothing/hats.dmi', icon_state = "biker_overlay")
+	. += biker_overlay

@@ -24,7 +24,10 @@
 
 	primitive_form = /datum/species/monkey/tajaran
 
-	species_traits = list(LIPS, HAVE_REGENERATION)
+	inherent_traits = list(
+		TRAIT_HAS_LIPS,
+		TRAIT_HAS_REGENERATION,
+	)
 	clothing_flags = HAS_UNDERWEAR | HAS_UNDERSHIRT | HAS_SOCKS
 	bodyflags = HAS_TAIL | HAS_HEAD_ACCESSORY | HAS_MARKINGS | HAS_SKIN_COLOR | TAIL_WAGGING
 	taste_sensitivity = TASTE_SENSITIVITY_SHARP
@@ -75,6 +78,13 @@
 	disliked_food = VEGETABLES | FRUIT | GRAIN | GROSS
 	liked_food = MEAT | RAW | DAIRY | EGG
 
+	age_sheet = list(
+		SPECIES_AGE_MIN = 11,
+		SPECIES_AGE_MAX = 44,
+		JOB_MIN_AGE_HIGH_ED = 19,
+		JOB_MIN_AGE_COMMAND = 19,
+	)
+
 /datum/species/tajaran/handle_death(gibbed, mob/living/carbon/human/H)
 	H.stop_tail_wagging()
 
@@ -85,17 +95,17 @@
 	return ..()
 
 /datum/species/tajaran/on_species_gain(mob/living/carbon/human/H)
-	..()
-	H.verbs |= /mob/living/carbon/human/proc/emote_wag
-	H.verbs |= /mob/living/carbon/human/proc/emote_swag
-	H.verbs |= /mob/living/carbon/human/proc/emote_purr
-	H.verbs |= /mob/living/carbon/human/proc/emote_purrl
-	H.verbs |= /mob/living/carbon/human/proc/emote_hiss_tajaran
+	. = ..()
+	add_verb(H, /mob/living/carbon/human/proc/emote_wag)
+	add_verb(H, /mob/living/carbon/human/proc/emote_swag)
+	add_verb(H, /mob/living/carbon/human/proc/emote_purr)
+	add_verb(H, /mob/living/carbon/human/proc/emote_purrl)
+	add_verb(H, /mob/living/carbon/human/proc/emote_hiss_tajaran)
 
 /datum/species/tajaran/on_species_loss(mob/living/carbon/human/H)
-	..()
-	H.verbs -= /mob/living/carbon/human/proc/emote_wag
-	H.verbs -= /mob/living/carbon/human/proc/emote_swag
-	H.verbs -= /mob/living/carbon/human/proc/emote_purr
-	H.verbs -= /mob/living/carbon/human/proc/emote_purrl
-	H.verbs -= /mob/living/carbon/human/proc/emote_hiss_tajaran
+	. = ..()
+	remove_verb(H, /mob/living/carbon/human/proc/emote_wag)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_swag)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_purr)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_purrl)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_hiss_tajaran)

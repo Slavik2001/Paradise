@@ -287,18 +287,17 @@
 	. = ..()
 	owner.set_num_hands(owner.num_hands + 1)
 	if(is_usable())
-		owner.set_usable_hands(owner.usable_hands + 1, special)
+		owner.set_usable_hands(owner.usable_hands + 1, special, limb_zone)
 
 
 /obj/item/organ/external/hand/remove(mob/living/carbon/human/user, special = ORGAN_MANIPULATION_DEFAULT, ignore_children = FALSE)
 	. = ..()
 	user.set_num_hands(user.num_hands - 1)
 	if(is_usable())
-		user.set_usable_hands(user.usable_hands - 1, special)
+		user.set_usable_hands(user.usable_hands - 1, special, limb_zone)
 	if(special == ORGAN_MANIPULATION_DEFAULT)
 		user.drop_item_ground(user.gloves, force = TRUE)
-		user.drop_item_ground(user.l_hand, force = TRUE)
-		user.drop_item_ground(user.r_hand, force = TRUE)
+		user.drop_item_ground(limb_zone == BODY_ZONE_PRECISE_L_HAND ? user.l_hand : user.r_hand, force = TRUE)
 
 
 /obj/item/organ/external/hand/necrotize(silent = FALSE)
@@ -307,7 +306,7 @@
 		return .
 
 	if(. != is_usable())
-		owner.set_usable_hands(owner.usable_hands - 1)
+		owner.set_usable_hands(owner.usable_hands - 1, hand_index = limb_zone)
 
 
 /obj/item/organ/external/hand/unnecrotize()
@@ -316,7 +315,7 @@
 		return .
 
 	if(. != is_usable())
-		owner.set_usable_hands(owner.usable_hands + 1)
+		owner.set_usable_hands(owner.usable_hands + 1, hand_index = limb_zone)
 
 
 /obj/item/organ/external/hand/mutate(silent = FALSE)
@@ -325,7 +324,7 @@
 		return .
 
 	if(. != is_usable())
-		owner.set_usable_hands(owner.usable_hands - 1)
+		owner.set_usable_hands(owner.usable_hands - 1, hand_index = limb_zone)
 
 
 /obj/item/organ/external/hand/unmutate(silent = FALSE)
@@ -334,14 +333,14 @@
 		return .
 
 	if(. != is_usable())
-		owner.set_usable_hands(owner.usable_hands + 1)
+		owner.set_usable_hands(owner.usable_hands + 1, hand_index = limb_zone)
 
 
 /obj/item/organ/external/hand/emp_act(severity)
 	..()
 	if(!owner || !is_robotic() || emp_proof || !tough) // Augmented arms and hands drop whatever they are holding on EMP.
 		return
-	var/hand = (limb_zone == BODY_ZONE_L_ARM) ? owner.l_hand : owner.r_hand
+	var/hand = (limb_zone == BODY_ZONE_PRECISE_L_HAND) ? owner.l_hand : owner.r_hand
 	if(hand && owner.can_unEquip(hand))
 		owner.drop_item_ground(hand)
 		to_chat(owner, span_userdanger("Ваш [name] выходит из строя, dropping what it was holding!"))
@@ -414,7 +413,17 @@
 	. = ..()
 
 
-/obj/item/organ/external/head/receive_damage(brute, burn, sharp, used_weapon = null, list/forbidden_limbs = list(), ignore_resists = FALSE, updating_health = TRUE, silent = FALSE)
+/obj/item/organ/external/head/external_receive_damage(
+	brute = 0,
+	burn = 0,
+	blocked = 0,
+	sharp = FALSE,
+	used_weapon = null,
+	list/forbidden_limbs = list(),
+	forced = FALSE,
+	updating_health = TRUE,
+	silent = FALSE,
+)
 	. = ..()
 	if(brute_dam + burn_dam > 50)
 		disfigure(silent)
@@ -477,9 +486,10 @@
 	var/list/m_colours = list("tail" = "#000000")
 	s_col = "#000000"
 
-/obj/item/organ/external/tail/New(mob/living/carbon/holder)
-	..()
-	if(!holder)
+/obj/item/organ/external/tail/Initialize(mapload, special = ORGAN_MANIPULATION_NOEFFECT)
+	. = ..()
+
+	if(!ishuman(loc))
 		var/icon/tempicon = new/icon("icon" = force_icon, "icon_state" = icon_name)
 		var/icon/tempicon2 = new/icon(tempicon,dir=NORTH)
 		tempicon2.Flip(SOUTH)
@@ -539,9 +549,10 @@
 	var/list/m_colours = list("wing" = "#000000")
 	s_col = "#000000"
 
-/obj/item/organ/external/wing/New(mob/living/carbon/holder)
-	..()
-	if(!holder)
+/obj/item/organ/external/wing/Initialize(mapload, special = ORGAN_MANIPULATION_NOEFFECT)
+	. = ..()
+
+	if(!ishuman(loc))
 		var/icon/tempicon = new/icon("icon" = force_icon, "icon_state" = icon_name)
 		var/icon/tempicon2 = new/icon(tempicon,dir=NORTH)
 		tempicon2.Flip(SOUTH)

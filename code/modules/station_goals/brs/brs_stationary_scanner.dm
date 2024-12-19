@@ -205,8 +205,8 @@
 
 	// It's a large machine, add a delay
 	user.visible_message(
-		"[user] начина[pluralize_ru(user.gender, "ет", "ют")] [panel_open ? "От" : "За"]кручивать панель [src].",
-		"Вы начинаете [panel_open ? "От" : "За"]кручивать панель [src]."
+		"[user] начина[pluralize_ru(user.gender, "ет", "ют")] [panel_open ? "за" : "от"]кручивать панель [src].",
+		"Вы начинаете [panel_open ? "за" : "от"]кручивать панель [src]."
 	)
 	if(!I.use_tool(src, user, 3 SECONDS, volume = I.tool_volume))
 		return
@@ -285,10 +285,10 @@
 
 	RefreshParts()
 
-/obj/machinery/power/brs_stationary_scanner/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/power/brs_stationary_scanner/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "BluespaceRiftScanner", name, 475, 400)
+		ui = new(user, src, "BluespaceRiftScanner", name)
 		ui.open()
 
 /obj/machinery/power/brs_stationary_scanner/ui_data(mob/user)

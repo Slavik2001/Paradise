@@ -89,8 +89,8 @@
 	taste_description = "mint"
 
 /datum/reagent/minttoxin/on_mob_life(mob/living/M)
-	if(FAT in M.mutations)
-		M.gib()
+	if(HAS_TRAIT(M, TRAIT_FAT) && M.gib())
+		return STATUS_UPDATE_NONE
 	return ..()
 
 /datum/reagent/slimejelly
@@ -131,7 +131,7 @@
 
 	if(method == REAGENT_INGEST && iscarbon(M))
 		var/mob/living/carbon/C = M
-		if(C.get_blood_id() == id)
+		if(C.get_blood_id() == id && !HAS_TRAIT(C, TRAIT_NO_BLOOD_RESTORE))
 			C.blood_volume = min(C.blood_volume + round(volume, 0.1), BLOOD_VOLUME_NORMAL)
 			C.reagents.del_reagent(id)
 
@@ -257,7 +257,7 @@
 		return
 	if(!M.dna)
 		return //No robots, AIs, aliens, Ians or other mobs should be affected by this.
-	if((method==REAGENT_TOUCH && prob(33)) || method==REAGENT_INGEST)
+	if(volume > 1 && ((method == REAGENT_TOUCH && prob(33)) || method == REAGENT_INGEST))
 		randmutb(M)
 		M.check_genes()
 
@@ -297,7 +297,7 @@
 	if(current_cycle != 10 || !ishuman(target) || !target.dna || !islist(data) || !istype(data["dna"], /datum/dna))
 		return ..()
 	var/datum/dna/reagent_dna = data["dna"]
-	if(!reagent_dna.species.is_small)
+	if(!reagent_dna.species.is_monkeybasic)
 		target.change_dna(reagent_dna, TRUE, TRUE)
 		target.special_post_clone_handling()
 	return ..()
@@ -353,6 +353,8 @@
 	color = "#00FF32"
 	process_flags = ORGANIC | SYNTHETIC
 	taste_description = "<span class='userdanger'>ACID</span>"
+	//acid is not using permeability_coefficient to calculate protection, but armour["acid"]
+	clothing_penetration = 1
 	var/acidpwr = 10 //the amount of protection removed from the armour
 
 /datum/reagent/acid/on_mob_life(mob/living/M)
@@ -364,30 +366,34 @@
 	if(ishuman(M) && !isgrey(M))
 		var/mob/living/carbon/human/H = M
 		if(method == REAGENT_TOUCH)
-			if(volume > 25)
-				if(H.wear_mask)
-					to_chat(H, "<span class='danger'>Your [H.wear_mask] protects you from the acid!</span>")
-					return
+			to_chat(H, span_warning("The greenish acidic substance stings[volume < 1 ? " you, but isn't concentrated enough to harm you" : null]!"))
+			if(volume < 1)
+				return
 
-				if(H.head)
-					to_chat(H, "<span class='danger'>Your [H.wear_mask] protects you from the acid!</span>")
-					return
+			var/damage_coef = 0
+			var/should_scream = TRUE
+			for(var/obj/item/organ/external/bodypart as anything in H.bodyparts)
+				if(istype(bodypart, /obj/item/organ/external/head) && !H.wear_mask && !H.head && volume > 25)
+					bodypart.disfigure()
+					if(H.has_pain() && should_scream)
+						H.emote("scream")
+						should_scream = FALSE
 
-				if(prob(75))
-					H.take_organ_damage(5, 10)
+				damage_coef = (100 - clamp(H.getarmor_organ(bodypart, "acid"), 0, 100))/100
+				if(damage_coef > 0 && should_scream)
+					should_scream = FALSE
+					if(H.has_pain())
+						H.emote("scream")
+				H.apply_damage(clamp(volume - 1, 2, 20) * damage_coef / length(H.bodyparts), BURN, def_zone = bodypart)
+				H.apply_damage(clamp((volume - 1)/2, 1, 10) * damage_coef / length(H.bodyparts), BRUTE, def_zone = bodypart)
+			return
+
+		if(method == REAGENT_INGEST)
+			to_chat(H, span_warning("The greenish acidic substance stings[volume < 1 ? " you, but isn't concentrated enough to harm you" : null]!"))
+			if(volume >= 1)
+				H.adjustFireLoss(clamp((volume - 1) * 2, 0, 30))
+				if(H.has_pain())
 					H.emote("scream")
-					var/obj/item/organ/external/affecting = H.get_organ(BODY_ZONE_HEAD)
-					if(affecting)
-						affecting.disfigure()
-				else
-					H.take_organ_damage(5, 10)
-			else
-				H.take_organ_damage(5, 10)
-		else
-			to_chat(H, "<span class='warning'>The greenish acidic substance stings[volume < 10 ? " you, but isn't concentrated enough to harm you" : null]!</span>")
-			if(volume >= 10)
-				H.adjustFireLoss(min(max(4, (volume - 10) * 2), 20))
-				H.emote("scream")
 
 /datum/reagent/acid/reaction_obj(obj/O, volume)
 	if(ismob(O.loc)) //handled in human acid_act()
@@ -407,6 +413,8 @@
 	description = "Fluorosulfuric acid is a an extremely corrosive super-acid."
 	color = "#5050FF"
 	acidpwr = 42
+	//acid is not using permeability_coefficient to calculate protection, but armour["acid"]
+	clothing_penetration = 1
 
 /datum/reagent/acid/facid/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
@@ -419,14 +427,14 @@
 		if(method == REAGENT_TOUCH)
 			if(volume >= 5)
 				var/damage_coef = 0
-				var/isDamaged = FALSE
+				var/should_scream = TRUE
 				for(var/obj/item/organ/external/bodypart as anything in H.bodyparts)
 					damage_coef = (100 - clamp(H.getarmor_organ(bodypart, "acid"), 0, 100))/100
-					if(damage_coef > 0 && !isDamaged)
-						isDamaged = TRUE
+					if(damage_coef > 0 && should_scream)
+						should_scream = FALSE
 						if(H.has_pain())
 							H.emote("scream")
-					bodypart.receive_damage(0, clamp((volume - 5) * 3, 8, 75) * damage_coef / length(H.bodyparts))
+					H.apply_damage(clamp((volume - 5) * 3, 8, 75) * damage_coef / length(H.bodyparts), BURN, def_zone = bodypart)
 
 			if(volume > 9 && (H.wear_mask || H.head))
 				if(H.wear_mask && !(H.wear_mask.resistance_flags & ACID_PROOF))
@@ -440,7 +448,8 @@
 				return
 		else
 			if(volume >= 5)
-				H.emote("scream")
+				if(H.has_pain())
+					H.emote("scream")
 				H.adjustFireLoss(clamp((volume - 5) * 3, 8, 75));
 		to_chat(H, "<span class='warning'>The blueish acidic substance stings[volume < 5 ? " you, but isn't concentrated enough to harm you" : null]!</span>")
 
@@ -462,15 +471,14 @@
 				var/obj/item/organ/external/affecting = H.get_organ(BODY_ZONE_HEAD)
 				if(affecting)
 					affecting.disfigure()
-				H.adjustBruteLoss(5)
-				H.adjustFireLoss(15)
+				H.take_overall_damage(5, 15)
 				H.emote("scream")
 			else
 				H.adjustBruteLoss(min(5, volume * 0.25))
 		else
 			to_chat(H, "<span class='warning'>The transparent acidic substance stings[volume < 25 ? " you, but isn't concentrated enough to harm you" : null]!</span>")
 			if(volume >= 25)
-				H.adjustBruteLoss(2)
+				H.take_overall_damage(2)
 				H.emote("scream")
 
 
@@ -1119,20 +1127,19 @@
 		var/obj/structure/spacevine/SV = O
 		SV.on_chem_effect(src)
 
+
 /datum/reagent/glyphosate/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
 	if(iscarbon(M))
 		var/mob/living/carbon/C = M
 		if(!C.wear_mask) // If not wearing a mask
 			C.adjustToxLoss(lethality)
-		if(ishuman(M))
-			var/mob/living/carbon/human/H = M
-			if(IS_PLANT in H.dna.species.species_traits) //plantmen take extra damage
-				H.adjustToxLoss(3)
-				..()
+		if(HAS_TRAIT(C, TRAIT_PLANT_ORIGIN))	//plantmen take extra damage
+			C.adjustToxLoss(3)
+			..()
 	else if(istype(M, /mob/living/simple_animal/diona)) //nymphs take EVEN MORE damage
-		var/mob/living/simple_animal/diona/D = M
-		D.adjustHealth(100)
+		M.apply_damage(100)
 		..()
+
 
 /datum/reagent/glyphosate/atrazine
 	name = "Atrazine"
@@ -1194,6 +1201,9 @@
 			M.AdjustEyeBlurry(20 SECONDS)
 	return ..() | update_flags
 
+/datum/reagent/capulettium/on_mob_delete(mob/living/M)
+	fakerevive(M)
+	..()
 
 /datum/reagent/capulettium_plus
 	name = "Capulettium Plus"
@@ -1214,8 +1224,7 @@
 	return ..()
 
 /datum/reagent/capulettium_plus/on_mob_delete(mob/living/M)
-	if(HAS_TRAIT(M, TRAIT_FAKEDEATH))
-		fakerevive(M)
+	fakerevive(M)
 	..()
 
 /datum/reagent/toxic_slurry
@@ -1285,7 +1294,7 @@
 
 /datum/reagent/ants/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume) //NOT THE ANTS
 	if(iscarbon(M))
-		if(method == REAGENT_TOUCH || method==REAGENT_INGEST)
+		if(volume > 1 && (method == REAGENT_TOUCH || method == REAGENT_INGEST))
 			to_chat(M, "<span class='warning'>OH SHIT ANTS!!!!</span>")
 			M.emote("scream")
 			M.adjustBruteLoss(4)
@@ -1301,13 +1310,29 @@
 	process_flags = ORGANIC | SYNTHETIC
 	taste_description = "electricity"
 
-/datum/reagent/teslium/on_mob_life(mob/living/M)
+
+/datum/reagent/teslium/on_mob_life(mob/living/affected_mob)
 	shock_timer++
 	if(shock_timer >= rand(5,30)) //Random shocks are wildly unpredictable
 		shock_timer = 0
-		M.electrocute_act(rand(5, 20), "Teslium in their body", 1, TRUE) //Override because it's caused from INSIDE of you
-		playsound(M, "sparks", 50, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
+		affected_mob.electrocute_act(rand(5, 20), "теслиума внутри организма", flags = SHOCK_NOGLOVES)	//SHOCK_NOGLOVES because it's caused from INSIDE of you
+		playsound(affected_mob, "sparks", 50, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
 	return ..()
+
+
+/datum/reagent/teslium/on_mob_add(mob/living/carbon/human/affected_mob)
+	. = ..()
+	if(!ishuman(affected_mob))
+		return .
+	affected_mob.physiology.siemens_coeff *= 2
+
+
+/datum/reagent/teslium/on_mob_delete(mob/living/carbon/human/affected_mob)
+	. = ..()
+	if(!ishuman(affected_mob))
+		return .
+	affected_mob.physiology.siemens_coeff *= 0.5
+
 
 /datum/reagent/gluttonytoxin
 	name = "Gluttony's Blessing"
@@ -1392,6 +1417,6 @@
 	if(iscarbon(M))
 		var/mob/living/carbon/C = M
 		for(var/obj/item/organ/internal/organ in C.get_organs_zone(BODY_ZONE_PRECISE_GROIN))
-			organ.receive_damage(rand(5, 10))
+			organ.internal_receive_damage(rand(5, 10))
 
 	return ..()

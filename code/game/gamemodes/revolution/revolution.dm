@@ -150,6 +150,8 @@
 		messages.Add("<span class='userdanger'>You are a member of the revolutionaries' leadership!</span>")
 	messages.Add(rev_mind.prepare_announce_objectives())
 	to_chat(rev_mind.current, chat_box_red(messages.Join("<br>")))
+	if(rev_mind.current)
+		SEND_SOUND(rev_mind.current, 'sound/ambience/antag/revolutionary_tide.ogg')
 
 /////////////////////////////////////////////////////////////////////////////////
 //This are equips the rev heads with their gear, and makes the clown not clumsy//
@@ -161,9 +163,11 @@
 	if(mob.mind)
 		if(mob.mind.assigned_role == JOB_TITLE_CLOWN)
 			to_chat(mob, "Your training has allowed you to overcome your clownish nature, allowing you to wield weapons without harming yourself.")
-			mob.mutations.Remove(CLUMSY)
-			var/datum/action/innate/toggle_clumsy/A = new
-			A.Grant(mob)
+			mob.force_gene_block(GLOB.clumsyblock, FALSE)
+			// Don't give them another action if they already have one.
+			if(!(locate(/datum/action/innate/toggle_clumsy) in mob.actions))
+				var/datum/action/innate/toggle_clumsy/toggle_clumsy = new
+				toggle_clumsy.Grant(mob)
 
 	var/obj/item/toy/crayon/spraycan/R = new(mob)
 	var/obj/item/clothing/glasses/hud/security/chameleon/C = new(mob)
@@ -229,6 +233,8 @@
 	update_rev_icons_added(rev_mind)
 	if(jobban_isbanned(rev_mind.current, ROLE_REV) || jobban_isbanned(rev_mind.current, ROLE_SYNDICATE))
 		replace_jobbanned_player(rev_mind.current, ROLE_REV)
+	if(rev_mind.current)
+		SEND_SOUND(rev_mind.current, 'sound/ambience/antag/revolutionary_tide.ogg')
 	return 1
 //////////////////////////////////////////////////////////////////////////////
 //Deals with players being converted from the revolution (Not a rev anymore)//  // Modified to handle borged MMIs.  Accepts another var if the target is being borged at the time  -- Polymorph.
@@ -308,7 +314,7 @@
 		for(var/datum/mind/head in heads)
 			var/target = (head in targets)
 			if(target)
-				text += "<span class='boldannounce'>Target</span>"
+				text += span_boldannounceooc("Target")
 			text += printplayer(head, 1)
 		text += "<br>"
 		to_chat(world, text)

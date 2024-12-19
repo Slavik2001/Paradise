@@ -27,8 +27,6 @@
 	response_disarm = "swings at"
 	response_harm   = "punches"
 	unsuitable_atmos_damage = 0
-	minbodytemp = 0
-	maxbodytemp = INFINITY
 	harm_intent_damage = 0
 	friendly = "touches"
 	status_flags = 0
@@ -62,6 +60,12 @@
 	ADD_TRAIT(src, TRAIT_NO_FLOATING_ANIM, INNATE_TRAIT)
 	AddElement(/datum/element/simple_flying)
 
+/mob/living/simple_animal/revenant/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = INFINITY, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/revenant/Life(seconds, times_fired)
 	..()
@@ -96,12 +100,20 @@
 /mob/living/simple_animal/revenant/ratvar_act()
 	return
 
-/mob/living/simple_animal/revenant/electrocute_act(shock_damage, obj/source, siemens_coeff = 1, safety = FALSE, override = FALSE, tesla_shock = FALSE, illusion = FALSE, stun = TRUE)
+/mob/living/simple_animal/revenant/electrocute_act(shock_damage, source, siemens_coeff = 1, flags = NONE, jitter_time = 10 SECONDS, stutter_time = 6 SECONDS, stun_duration = 4 SECONDS)
 	return FALSE //You are a ghost, atmos and grill makes sparks, and you make your own shocks with lights.
 
-/mob/living/simple_animal/revenant/adjustHealth(amount, updating_health = TRUE)
+
+/mob/living/simple_animal/revenant/adjustHealth(
+	amount = 0,
+	updating_health = TRUE,
+	blocked = 0,
+	damage_type = BRUTE,
+	forced = FALSE,
+)
+	. = STATUS_UPDATE_NONE
 	if(!revealed)
-		return
+		return .
 	essence = max(0, essence-amount)
 	if(essence == 0)
 		to_chat(src, "<span class='revendanger'>You feel your essence fraying!</span>")
@@ -122,12 +134,12 @@
 			to_chat(M, rendered)
 
 
-/mob/living/simple_animal/revenant/Stat()
-	..()
-	if(statpanel("Status"))
-		stat(null, "Current essence: [essence]/[essence_regen_cap]E")
-		stat(null, "Stolen essence: [essence_accumulated]E")
-		stat(null, "Stolen perfect souls: [perfectsouls]")
+/mob/living/simple_animal/revenant/get_status_tab_items()
+	var/list/status_tab_data = ..()
+	. = status_tab_data
+	status_tab_data[++status_tab_data.len] = list("Current essence:", "[essence]/[essence_regen_cap]E")
+	status_tab_data[++status_tab_data.len] = list("Stolen essence:", "[essence_accumulated]E")
+	status_tab_data[++status_tab_data.len] = list("Stolen perfect souls:", "[perfectsouls]")
 
 /mob/living/simple_animal/revenant/New()
 	..()
@@ -180,7 +192,7 @@
 			messages.Add("<b>You are invincible and invisible to everyone but other ghosts. Most abilities will reveal you, rendering you vulnerable.</b>")
 			messages.Add("<b>To function, you are to drain the life essence from humans. This essence is a resource, as well as your health, and will power all of your abilities.</b>")
 			messages.Add("<b><i>You do not remember anything of your past lives, nor will you remember anything about this one after your death.</i></b>")
-			messages.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"https://wiki.ss220.space/index.php/Revenant\">Ревенант</a></span>")
+			messages.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/Revenant\">Ревенант</a></span>")
 			var/datum/objective/revenant/objective = new
 			objective.owner = mind
 			mind.objectives += objective
@@ -197,6 +209,7 @@
 	mind.AddSpell(new /obj/effect/proc_holder/spell/aoe/revenant/defile(null))
 	mind.AddSpell(new /obj/effect/proc_holder/spell/aoe/revenant/malfunction(null))
 	mind.AddSpell(new /obj/effect/proc_holder/spell/aoe/revenant/overload(null))
+	mind.AddSpell(new /obj/effect/proc_holder/spell/aoe/revenant/blight(null))
 	mind.AddSpell(new /obj/effect/proc_holder/spell/aoe/revenant/haunt_object(null))
 	mind.AddSpell(new /obj/effect/proc_holder/spell/aoe/revenant/hallucinations(null))
 	return TRUE
@@ -223,9 +236,15 @@
 	playsound(src, 'sound/effects/screech.ogg', 100, 1)
 	visible_message("<span class='warning'>[src] lets out a waning screech as violet mist swirls around its dissolving body!</span>")
 	update_icon(UPDATE_ICON_STATE)
-	for(var/i = alpha, i > 0, i -= 10)
-		sleep(0.1)
-		alpha = i
+	delayed_death()
+
+
+/mob/living/simple_animal/revenant/proc/delayed_death()
+	set waitfor = FALSE
+	animate(src, alpha = 0, time = 2.5 SECONDS)
+	sleep(2.5 SECONDS)
+	if(QDELETED(src))
+		return
 	visible_message("<span class='danger'>[src]'s body breaks apart into a fine pile of blue dust.</span>")
 	var/obj/item/ectoplasm/revenant/R = new (get_turf(src))
 	var/reforming_essence = essence_regen_cap //retain the gained essence capacity
@@ -235,16 +254,18 @@
 	ghostize()
 	qdel(src)
 
-/mob/living/simple_animal/revenant/attackby(obj/item/W, mob/living/user, params)
-	if(istype(W, /obj/item/nullrod))
-		visible_message("<span class='warning'>[src] violently flinches!</span>", \
-						"<span class='revendanger'>As \the [W] passes through you, you feel your essence draining away!</span>")
-		adjustBruteLoss(25) //hella effective
-		inhibited = 1
-		spawn(30)
-			inhibited = 0
 
-	..()
+/mob/living/simple_animal/revenant/attackby(obj/item/I, mob/living/user, params)
+	if(istype(I, /obj/item/nullrod))
+		visible_message(
+			span_warning("[src] violently flinches!"),
+			span_revendanger("As [I.name] passes through you, you feel your essence draining away!"),
+		)
+		apply_damage(25) //hella effective
+		inhibited = TRUE
+		addtimer(VARSET_CALLBACK(src, inhibited, FALSE), 3 SECONDS)
+	return ..()
+
 
 /mob/living/simple_animal/revenant/proc/castcheck(essence_cost)
 	if(!src)

@@ -13,3 +13,8 @@
 
 #define VAMPIRE_NULLIFICATION_CAP 120 // the maximum amount a vampire can be nullified naturally.
 #define VAMPIRE_COMPLETE_NULLIFICATION 100 // the point of nullification where vampires can no longer use abilities.
+
+#define NEW_NULLIFICATION 1 //nulifiaction like the new vampires
+#define OLD_NULLIFICATION 2 //nulifiaction like the goon vampires
+
+#define REQ_BLOOD_FOR_SUBCLASS_ACT 400 // total blood required for a special subclass action

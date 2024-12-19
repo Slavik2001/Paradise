@@ -28,6 +28,24 @@
 		var/datum/data/pda/messenger_plugin/P = A
 		P.pda = pda
 
+/obj/item/cartridge/proc/stamp_act(stamp)
+	var/result = FALSE
+	for(var/A in programs)
+		var/datum/data/pda/P = A
+		result = result || P.stamp_act(stamp)
+	for(var/A in messenger_plugins)
+		var/datum/data/pda/messenger_plugin/P = A
+		result = result || P.stamp_act(stamp)
+	return result
+
+/obj/item/cartridge/proc/on_id_updated()
+	for(var/A in programs)
+		var/datum/data/pda/P = A
+		P.on_id_updated()
+	for(var/A in messenger_plugins)
+		var/datum/data/pda/messenger_plugin/P = A
+		P.on_id_updated()
+
 /obj/item/cartridge/engineering
 	name = "Power-ON Cartridge"
 	icon_state = "cart-e"
@@ -293,33 +311,3 @@
 	charges = 5
 	var/telecrystals = 0
 	messenger_plugins = list(new/datum/data/pda/messenger_plugin/virus/frame)
-
-/obj/item/cartridge/mob_hunt_game
-	name = "Nano-Mob Hunter GO! Cartridge"
-	desc = "The hit new PDA game that lets you track down and capture your favorite Nano-Mobs living in your world!"
-	icon_state = "cart-eye"
-	programs = list(new/datum/data/pda/app/mob_hunter_game)
-	var/emagged = 0
-
-/obj/item/cartridge/mob_hunt_game/attackby(obj/item/O, mob/user, params)
-	if(istype(O, /obj/item/nanomob_card))
-		var/obj/item/nanomob_card/card = O
-		var/datum/data/pda/app/mob_hunter_game/my_game = programs[1]
-		if(my_game.register_capture(card.mob_data))
-			to_chat(user, "<span class='notice'>Transfer successful!</span>")
-			qdel(card)
-		else
-			to_chat(user, "<span class='warning'>Transfer failed. Could not read mob data from card.</span>")
-	else
-		..()
-
-/obj/item/cartridge/mob_hunt_game/emag_act(mob/user)
-	if(!emagged)
-		add_attack_logs(user, src, "emagged")
-		emagged = 1
-		var/datum/data/pda/app/mob_hunter_game/my_game = programs[1]
-		my_game.hacked = 1
-		if(user)
-			to_chat(user, "<span class='warning'>TR4P_M45T3R.mod successfully initialized. ToS violated. User Agreement nullified. Gotta pwn them all.</span>")
-			to_chat(user, "<span class='warning'>You can now create trapped versions of any mob in your collection that will damage hunters who attempt to capture it.</span>")
-		description_antag = "This copy of Nano-Mob Hunter GO! has been hacked to allow the creation of trap mobs which will cause any PDA that attempts to capture it to shock anyone holding it. Hacked copies of the game will not trigger the trap."

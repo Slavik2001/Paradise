@@ -205,22 +205,23 @@ REAGENT SCANNER
 	if(!ismob(viewer) || !viewer.client)
 		return
 	new /obj/effect/temp_visual/scan(get_turf(src))
-
 	var/list/t_ray_images = list()
-	for(var/mob/living/in_turf_living in viewers(scan_range, get_turf(src)))
-		if(!(in_turf_living.alpha < 255 || in_turf_living.invisibility == INVISIBILITY_LEVEL_TWO))
-			continue
 
-		var/image/I = new(loc = get_turf(in_turf_living))
-		var/mutable_appearance/MA = new(in_turf_living)
+	for(var/atom/movable/invisible_object as anything in view(scan_range, get_turf(src)))
+		if(!(istype(invisible_object, /obj/structure/closet/cardboard/agent/) || isliving(invisible_object)))
+			continue
+		if(!(invisible_object.alpha < 255 || invisible_object.invisibility == INVISIBILITY_LEVEL_TWO))
+			continue
+		var/image/I = new(loc = get_turf(invisible_object))
+		var/mutable_appearance/MA = new(invisible_object)
 		MA.alpha = 255
-		MA.dir = in_turf_living.dir
+		MA.dir = invisible_object.dir
 		if(MA.layer < TURF_LAYER)
 			MA.layer += TRAY_SCAN_LAYER_OFFSET
 		MA.plane = GAME_PLANE
 		I.appearance = MA
 		t_ray_images += I
-		alert_searchers(in_turf_living)
+		alert_searchers(invisible_object)
 
 	if(length(t_ray_images))
 		flick_overlay(t_ray_images, list(viewer.client), pulse_duration)
@@ -245,7 +246,7 @@ REAGENT SCANNER
 			if(H.reagents.reagent_list.len)
 				to_chat(user, "<span class='notice'>Subject contains the following reagents:</span>")
 				for(var/datum/reagent/R in H.reagents.reagent_list)
-					to_chat(user, "<span class='notice'>[R.volume]u of [R.name][R.overdosed ? "</span> - <span class = 'boldannounce'>OVERDOSING</span>" : ".</span>"]")
+					to_chat(user, "<span class='notice'>[R.volume]u of [R.name][R.overdosed ? "</span> - [span_boldannounceic("OVERDOSING")]" : ".</span>"]")
 			else
 				to_chat(user, "<span class = 'notice'>Subject contains no reagents.</span>")
 			if(H.reagents.addiction_list.len)
@@ -256,7 +257,7 @@ REAGENT SCANNER
 				to_chat(user, "<span class='notice'>Subject is not addicted to any reagents.</span>")
 
 /obj/item/healthanalyzer
-	name = "Health Analyzer"
+	name = "health analyzer"
 	icon = 'icons/obj/device.dmi'
 	icon_state = "health"
 	item_state = "healthanalyzer"
@@ -286,12 +287,17 @@ REAGENT SCANNER
 
 	var/isPrinting = FALSE
 
-/obj/item/healthanalyzer/attack(mob/living/M, mob/living/user)
-//	healthscan(user, M, mode, advanced)
+	var/datum/money_account/connected_acc = null
+
+	var/mob/scanned = null
+
+/obj/item/healthanalyzer/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
 	add_fingerprint(user)
-	scan_title = "Сканирование: [M]"
-	scan_data = medical_scan_action(user, M, src, mode, advanced)
+	scan_title = "Сканирование: [target]"
+	scan_data = medical_scan_action(user, target, src, mode, advanced)
 	show_results(user)
+	return ATTACK_CHAIN_PROCEED_SUCCESS
+
 
 /obj/item/healthanalyzer/attack_self(mob/user)
 	if(!scan_data)
@@ -314,6 +320,9 @@ REAGENT SCANNER
 		if(!isPrinting)
 			print_report(user)
 		return 1
+	if(href_list["insurance"])
+		do_insurance_collection(user, scanned, connected_acc)
+		return 1
 	if(href_list["mode"])
 		toggle_mode()
 		return 1
@@ -332,7 +341,7 @@ REAGENT SCANNER
 	var/mob/user = usr
 	if(!istype(user))
 		return
-	if (user.incapacitated())
+	if(user.incapacitated())
 		return
 	print_report(user)
 
@@ -370,10 +379,9 @@ REAGENT SCANNER
 	var/datum/browser/popup = new(user, "scanner", scan_title, window_width, window_height)
 	popup.set_content("[get_header(user)]<hr>[scan_data]")
 	popup.open(no_focus = 1)
-	popup.resize(window_width,window_height)
 
 /obj/item/healthanalyzer/proc/get_header(mob/user)
-	return "<a href='?src=[src.UID()];user=[user.UID()];clear=1'>Очистить</a><a href='?src=[src.UID()];user=[user.UID()];mode=1'>Локализация</a>[advanced ? "<a href='?src=[src.UID()];user=[user.UID()];print=1'>Печать отчета</a>" : ""]"
+	return "<a href='byond://?src=[src.UID()];user=[user.UID()];clear=1'>Очистить</a><a href='byond://?src=[src.UID()];user=[user.UID()];mode=1'>Локализация</a>[advanced ? "<a href='byond://?src=[src.UID()];user=[user.UID()];print=1'>Печать отчета</a><a href='byond://?src=[src.UID()];user=[user.UID()];insurance=1'>Списать страховку</a>" : ""]"
 
 /obj/item/healthanalyzer/examine(mob/user)
 	. = ..()
@@ -384,12 +392,12 @@ REAGENT SCANNER
 			. += "<span class='notice'>Нужно подойти ближе, чтобы прочесть содержимое.</span>"
 
 /proc/medical_scan_action(mob/living/user, atom/target, var/obj/item/healthanalyzer/scanner, var/mode, var/advanced)
-	if (!user.IsAdvancedToolUser())
+	if(!user.IsAdvancedToolUser())
 		to_chat(user, "<span class='warning'>Вы не достаточно ловки, чтобы использовать это устройство.</span>")
 		return
 
 	scanner.window_height = initial(scanner.window_height)
-	if(((CLUMSY in user.mutations) || user.getBrainLoss() >= 60) && prob(50))
+	if((HAS_TRAIT(user, TRAIT_CLUMSY) || user.getBrainLoss() >= 60) && prob(50))
 		. = list()
 		user.visible_message("<span class='warning'>[user] анализирует жизненные показатели пола!</span>", "<span class='notice'>Вы по глупости анализировали жизненные показатели пола!</span>")
 		. += "Общий статус: <b>100% Здоров</b>"
@@ -406,19 +414,19 @@ REAGENT SCANNER
 		return "<span class='highlight'>[jointext(., "<br>")]</span>"
 
 	var/mob/living/carbon/human/scan_subject = null
-	if (ishuman(target))
+	if(ishuman(target))
 		scan_subject = target
-	else if (istype(target, /obj/structure/closet/body_bag))
+	else if(istype(target, /obj/structure/closet/body_bag))
 		var/obj/structure/closet/body_bag/B = target
 		if(!B.opened)
 			var/list/scan_content = list()
 			for(var/mob/living/L in B.contents)
 				scan_content.Add(L)
 
-			if (scan_content.len == 1)
+			if(scan_content.len == 1)
 				for(var/mob/living/carbon/human/L in scan_content)
 					scan_subject = L
-			else if (scan_content.len > 1)
+			else if(scan_content.len > 1)
 				to_chat(user, "<span class='warning'>[scanner] обнаружил несколько субъектов внутри [target], слишком близко для нормального сканирования.</span>")
 				return
 			else
@@ -436,6 +444,8 @@ REAGENT SCANNER
 	. = medical_scan_results(scan_subject, mode, advanced)
 	scanner.window_height += length(.) * 20
 	. = "<span class='highlight'>[jointext(., "<br>")]</span>"
+	scanner.scanned = scan_subject
+
 
 /proc/medical_scan_results(var/mob/living/M, var/mode = 1, var/advanced = FALSE)
 	. = list()
@@ -502,7 +512,7 @@ REAGENT SCANNER
 			if(H.reagents.reagent_list.len)
 				. += "Обнаружены реагенты:"
 				for(var/datum/reagent/R in H.reagents.reagent_list)
-					. += "&emsp;[R.volume]u [R.name][R.overdosed ? " - <span class='boldannounce'>ПЕРЕДОЗИРОВКА</span>" : "."]"
+					. += "&emsp;[R.volume]u [R.name][R.overdosed ? " - [span_boldannounceic("ПЕРЕДОЗИРОВКА")]" : "."]"
 			else
 				. += "Реагенты не обнаружены."
 			if(H.reagents.addiction_list.len)
@@ -616,7 +626,16 @@ REAGENT SCANNER
 	else
 		. += "Гены стабильны."
 
-// Это вывод в чат
+	var/datum/money_account/acc = get_insurance_account(H)
+	if(acc)
+		. += "Тип страховки - [acc.insurance_type]"
+	else
+		. += "Аккаунт не обнаружен"
+	. += "Требуемое количество очков страховки: [get_req_insurance(H)]"
+	if(acc)
+		. += "Текущее количество очков страховки: [acc.insurance]"
+
+// This is the output to the chat
 /proc/healthscan(mob/user, mob/living/M, mode = 1, advanced = FALSE)
 	var/scan_data = medical_scan_results(M, mode, advanced)
 	to_chat(user, "[jointext(scan_data, "<br>")]")
@@ -644,17 +663,38 @@ REAGENT SCANNER
 
 /obj/item/healthanalyzer/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/healthupgrade))
+		add_fingerprint(user)
 		if(advanced)
-			to_chat(user, "<span class='notice'>Модуль обновления уже установлен на [src].</span>")
-		else
-			if(user.drop_transfer_item_to_loc(I, src))
-				to_chat(user, "<span class='notice'>Вы установили модуль обновления на [src].</span>")
-				playsound(loc, I.usesound, 50, 1)
-				advanced = TRUE
-				update_icon(UPDATE_OVERLAYS)
-				qdel(I)
-		return
+			to_chat(user, span_warning("Продвинутый модуль сканирования уже установлен."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		to_chat(user, span_notice("Вы установили продвинутый модуль сканирования."))
+		playsound(loc, I.usesound, 50, TRUE)
+		advanced = TRUE
+		update_icon(UPDATE_OVERLAYS)
+		qdel(I)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(istype(I, /obj/item/card/id))
+		add_fingerprint(user)
+		if(!advanced)
+			to_chat(user, span_warning("Для привязки счета требуется наличие продвинутого модуля сканирования."))
+			return ATTACK_CHAIN_PROCEED
+
+		var/obj/item/card/id/id = I
+
+		if(!id.associated_account_number)
+			to_chat(user, span_warning("Не обнаружено привязанного аккаунта."))
+			return ATTACK_CHAIN_PROCEED
+
+		connected_acc = id.associated_account_number
+		to_chat(user, span_notice("Аккаунт привязан."))
+		playsound(loc, I.usesound, 50, TRUE)
+		return ATTACK_CHAIN_PROCEED
+
 	return ..()
+
 
 /obj/item/healthanalyzer/advanced
 	advanced = TRUE
@@ -692,8 +732,7 @@ REAGENT SCANNER
 	var/scanning = TRUE
 	actions_types = list(/datum/action/item_action/print_report)
 
-/obj/item/reagent_scanner/afterattack(obj/O, mob/user as mob)
-	try_item_eat(O, user)
+/obj/item/reagent_scanner/afterattack(obj/O, mob/user, proximity, params)
 	if(user.stat)
 		return
 	if(!user.IsAdvancedToolUser())
@@ -754,7 +793,7 @@ REAGENT SCANNER
 	else
 		to_chat(usr, "<span class='notice'>[src]  has no logs or is already in use.</span>")
 
-/obj/item/reagent_scanner/ui_action_click()
+/obj/item/reagent_scanner/ui_action_click(mob/user, datum/action/action, leftclick)
 	print_report()
 
 /obj/item/slime_scanner
@@ -770,13 +809,15 @@ REAGENT SCANNER
 	throw_range = 7
 	materials = list(MAT_METAL=30, MAT_GLASS=20)
 
-/obj/item/slime_scanner/attack(mob/living/M, mob/living/user)
+/obj/item/slime_scanner/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
 	if(user.incapacitated() || user.AmountBlinded())
-		return
-	if(!isslime(M))
-		to_chat(user, "<span class='warning'>This device can only scan slimes!</span>")
-		return
-	slime_scan(M, user)
+		return .
+	if(!isslime(target))
+		to_chat(user, span_warning("This device can only scan slimes!"))
+		return .
+	. |= ATTACK_CHAIN_SUCCESS
+	slime_scan(target, user)
 
 /proc/slime_scan(mob/living/simple_animal/slime/T, mob/living/user)
 	to_chat(user, "========================")
@@ -884,34 +925,40 @@ REAGENT SCANNER
 		. += "[base_icon_state]_printing"
 
 
-/obj/item/bodyanalyzer/attack(mob/living/M, mob/living/carbon/human/user)
-	if(user.incapacitated() || !user.Adjacent(M))
-		return
+/obj/item/bodyanalyzer/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
+
+	if(user.incapacitated() || !user.Adjacent(target))
+		return .
 
 	if(!ready)
-		to_chat(user, "<span class='notice'>The scanner beeps angrily at you! It's currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining.</span>")
-		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, 1)
-		return
+		to_chat(user, span_notice("The scanner beeps angrily at you! It's currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining."))
+		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, TRUE)
+		return .
 
 	if(cell.charge >= usecharge)
-		mobScan(M, user)
+		. |= ATTACK_CHAIN_SUCCESS
+		mobScan(target, user)
 	else
-		to_chat(user, "<span class='notice'>The scanner beeps angrily at you! It's out of charge!</span>")
-		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, 1)
+		to_chat(user, span_notice("The scanner beeps angrily at you! It's out of charge!"))
+		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, TRUE)
 
 
-/obj/item/bodyanalyzer/borg/attack(mob/living/M, mob/living/silicon/robot/user)
-	if(user.incapacitated() || !user.Adjacent(M))
-		return
+/obj/item/bodyanalyzer/borg/attack(mob/living/target, mob/living/silicon/robot/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
+
+	if(user.incapacitated() || !user.Adjacent(target))
+		return .
 
 	if(!ready)
-		to_chat(user, "<span class='notice'>[src] is currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining.</span>")
-		return
+		to_chat(user, span_notice("[src] is currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining."))
+		return .
 
 	if(user.cell.charge >= usecharge)
-		mobScan(M, user)
+		. |= ATTACK_CHAIN_SUCCESS
+		mobScan(target, user)
 	else
-		to_chat(user, "<span class='notice'>You need to recharge before you can use [src]</span>")
+		to_chat(user, span_notice("You need to recharge before you can use [src]"))
 
 
 /obj/item/bodyanalyzer/proc/mobScan(mob/living/M, mob/user)
@@ -1095,11 +1142,11 @@ REAGENT SCANNER
 		dat += "<td>[organ.name]</td><td>N/A</td><td>[organ.damage]</td><td>[infection]:[mech]</td><td></td>"
 		dat += "</tr>"
 	dat += "</table>"
-	if(BLINDNESS in target.mutations)
+	if(HAS_TRAIT(target, TRAIT_BLIND))
 		dat += "<font color='red'>Cataracts detected.</font><BR>"
-	if(COLOURBLIND in target.mutations)
+	if(HAS_TRAIT(target, TRAIT_COLORBLIND))
 		dat += "<font color='red'>Photoreceptor abnormalities detected.</font><BR>"
-	if(NEARSIGHTED in target.mutations)
+	if(HAS_TRAIT(target, TRAIT_NEARSIGHTED))
 		dat += "<font color='red'>Retinal misalignment detected.</font><BR>"
 
 	return dat

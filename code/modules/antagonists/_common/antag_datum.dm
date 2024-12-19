@@ -41,7 +41,8 @@ GLOBAL_LIST_EMPTY(antagonists)
 	var/wiki_page_name
 	/// Russian name of wiki page
 	var/russian_wiki_name
-
+	/// Show antag in ghost orbit
+	var/show_in_orbit = TRUE
 
 /datum/antagonist/New()
 	GLOB.antagonists += src
@@ -49,7 +50,7 @@ GLOBAL_LIST_EMPTY(antagonists)
 	assigned_targets = list()
 
 
-/datum/antagonist/Destroy(force, ...)
+/datum/antagonist/Destroy(force)
 	for(var/datum/objective/objective as anything in objectives)
 		objectives -= objective
 		if(!objective.team)
@@ -129,7 +130,7 @@ GLOBAL_LIST_EMPTY(antagonists)
 	apply_innate_effects()
 	messages.Add(finalize_antag())
 	if(wiki_page_name)
-		messages.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"https://wiki.ss220.space/index.php/[wiki_page_name]\">[russian_wiki_name]</span>")
+		messages.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/[wiki_page_name]\">[russian_wiki_name]</span>")
 	to_chat(owner.current, chat_box_red(messages.Join("<br>")))
 
 	if(is_banned(owner.current) && replace_banned)
@@ -283,14 +284,14 @@ GLOBAL_LIST_EMPTY(antagonists)
 
 	// Remove clumsy and give them an action to toggle it on and off.
 	if(granting_datum)
-		clown.mutations.Remove(CLUMSY)
+		clown.force_gene_block(GLOB.clumsyblock, FALSE)
 		// Don't give them another action if they already have one.
 		if(!(locate(/datum/action/innate/toggle_clumsy) in clown.actions))
 			var/datum/action/innate/toggle_clumsy/A = new
 			A.Grant(clown)
 	// Give them back the clumsy gene and remove their toggle action, but ONLY if they don't have any other antag datums.
 	else if(LAZYLEN(owner.antag_datums) <= 1)
-		clown.mutations.Add(CLUMSY)
+		clown.force_gene_block(GLOB.clumsyblock, TRUE)
 		if(locate(/datum/action/innate/toggle_clumsy) in clown.actions)
 			var/datum/action/innate/toggle_clumsy/A = locate() in clown.actions
 			A.Remove(clown)
@@ -444,3 +445,23 @@ GLOBAL_LIST_EMPTY(antagonists)
  */
 /datum/antagonist/proc/roundend_report_footer()
 	return
+
+/**
+ * Create and assign a single randomized objective.
+ */
+/datum/antagonist/proc/forge_single_objective()
+	if(prob(50))
+		if(length(active_ais()) && prob(100 / length(GLOB.player_list)))
+			add_objective(/datum/objective/destroy)
+
+		else if(prob(5))
+			add_objective(/datum/objective/debrain)
+
+		else if(prob(20))
+			add_objective(/datum/objective/protect)
+
+		else
+			add_objective(/datum/objective/maroon)
+
+	else
+		add_objective(/datum/objective/steal)

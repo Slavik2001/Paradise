@@ -1,9 +1,8 @@
 GLOBAL_LIST_INIT(potentialRandomZlevels, generateMapList(filename = "config/away_mission_config.txt"))
-
 /proc/empty_rect(low_x,low_y, hi_x,hi_y, z)
 	var/timer = start_watch()
 	log_debug("Emptying region: ([low_x], [low_y]) to ([hi_x], [hi_y]) on z '[z]'")
-	empty_region(block(locate(low_x, low_y, z), locate(hi_x, hi_y, z)))
+	empty_region(block(low_x, low_y, z, hi_x, hi_y, z))
 	log_debug("Took [stop_watch(timer)]s")
 
 
@@ -15,12 +14,15 @@ GLOBAL_LIST_INIT(potentialRandomZlevels, generateMapList(filename = "config/away
 		T.ChangeTurf(T.baseturf)
 
 /proc/loadAwayLevel()
-	if(!GLOB.potentialRandomZlevels || !GLOB.potentialRandomZlevels.len)
+	if((!GLOB.potentialRandomZlevels || !GLOB.potentialRandomZlevels.len) && !CONFIG_GET(string/override_away_mission))
 		log_startup_progress_global("Mapping", "No away missions found.")
 		return
 	var/watch = start_watch()
 	log_startup_progress_global("Mapping", "Loading away mission...")
-	var/map = pick(GLOB.potentialRandomZlevels)
+	var/map = !CONFIG_GET(string/override_away_mission) ? pick(GLOB.potentialRandomZlevels) : CONFIG_GET(string/override_away_mission)
+	if(CONFIG_GET(string/override_away_mission))
+		log_startup_progress_global("Mapping", "Away mission overridden by configuration to [CONFIG_GET(string/override_away_mission)].")
+
 	var/file = wrap_file(map)
 	var/bounds = GLOB.maploader.load_map(file, 1, 1, 1, shouldCropMap = FALSE, measureOnly = TRUE)
 	var/total_z = bounds[MAP_MAXZ] - bounds[MAP_MINZ] + 1

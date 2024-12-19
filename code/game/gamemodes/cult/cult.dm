@@ -93,9 +93,11 @@ GLOBAL_LIST_EMPTY(all_cults)
 
 		if(cult_mind.assigned_role == JOB_TITLE_CLOWN)
 			to_chat(cult_mind.current, "<span class='cultitalic'>A dark power has allowed you to overcome your clownish nature, letting you wield weapons without harming yourself.</span>")
-			cult_mind.current.mutations.Remove(CLUMSY)
-			var/datum/action/innate/toggle_clumsy/A = new
-			A.Grant(cult_mind.current)
+			cult_mind.current.force_gene_block(GLOB.clumsyblock, FALSE)
+			// Don't give them another action if they already have one.
+			if(!(locate(/datum/action/innate/toggle_clumsy) in cult_mind.current.actions))
+				var/datum/action/innate/toggle_clumsy/toggle_clumsy = new
+				toggle_clumsy.Grant(cult_mind.current)
 
 		add_cult_actions(cult_mind)
 		update_cult_icons_added(cult_mind)
@@ -189,9 +191,12 @@ GLOBAL_LIST_EMPTY(all_cults)
 
 		if(cult_mind.assigned_role == JOB_TITLE_CLOWN)
 			to_chat(cult_mind.current, "<span class='cultitalic'>A dark power has allowed you to overcome your clownish nature, letting you wield weapons without harming yourself.</span>")
-			cult_mind.current.mutations.Remove(CLUMSY)
-			var/datum/action/innate/toggle_clumsy/A = new
-			A.Grant(cult_mind.current)
+			cult_mind.current.force_gene_block(GLOB.clumsyblock, FALSE)
+			// Don't give them another action if they already have one.
+			if(!(locate(/datum/action/innate/toggle_clumsy) in cult_mind.current.actions))
+				var/datum/action/innate/toggle_clumsy/toggle_clumsy = new
+				toggle_clumsy.Grant(cult_mind.current)
+
 		SEND_SOUND(cult_mind.current, 'sound/ambience/antag/bloodcult.ogg')
 		add_conversion_logs(cult_mind.current, "converted to the blood cult")
 
@@ -224,17 +229,17 @@ GLOBAL_LIST_EMPTY(all_cults)
 		for(var/datum/mind/M in cult)
 			if(!M.current || !ishuman(M.current))
 				continue
-			SEND_SOUND(M.current, 'sound/hallucinations/i_see_you2.ogg')
+			SEND_SOUND(M.current, 'sound/ambience/antag/bloodcult_eyes.ogg')
 			to_chat(M.current, "<span class='cultlarge'>The veil weakens as your cult grows, your eyes begin to glow...</span>")
 			log_admin("The Blood Cult has risen. The eyes started to glow.")
 			addtimer(CALLBACK(src, PROC_REF(rise), M.current), 20 SECONDS)
 
-	else if(cult_players >= ascend_number)
+	if(cult_players >= ascend_number)
 		cult_ascendant = TRUE
 		for(var/datum/mind/M in cult)
 			if(!M.current || !ishuman(M.current))
 				continue
-			SEND_SOUND(M.current, 'sound/hallucinations/im_here1.ogg')
+			SEND_SOUND(M.current, 'sound/ambience/antag/bloodcult_halos.ogg')
 			to_chat(M.current, "<span class='cultlarge'>Your cult is ascendant and the red harvest approaches - you cannot hide your true nature for much longer!")
 			log_admin("The Blood Cult has Ascended. The blood halo started to appear.")
 			addtimer(CALLBACK(src, PROC_REF(ascend), M.current), 20 SECONDS)
@@ -288,13 +293,13 @@ GLOBAL_LIST_EMPTY(all_cults)
 
 /datum/game_mode/proc/update_cult_icons_added(datum/mind/cult_mind)
 	var/datum/atom_hud/antag/culthud = GLOB.huds[ANTAG_HUD_CULT]
-	if(cult_mind.current)
+	if(cult_mind?.current)
 		culthud.join_hud(cult_mind.current)
 		set_antag_hud(cult_mind.current, "hudcultist")
 
 /datum/game_mode/proc/update_cult_icons_removed(datum/mind/cult_mind)
 	var/datum/atom_hud/antag/culthud = GLOB.huds[ANTAG_HUD_CULT]
-	if(cult_mind.current)
+	if(cult_mind?.current)
 		culthud.leave_hud(cult_mind.current)
 		set_antag_hud(cult_mind.current, null)
 

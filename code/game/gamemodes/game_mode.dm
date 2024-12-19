@@ -326,10 +326,7 @@
 		if(!player.client \
 			|| jobban_isbanned(player, "Syndicate") || jobban_isbanned(player, role) \
 			|| !player_old_enough_antag(player.client, role, req_job_rank) || player.client.prefs?.skip_antag \
-			|| !(role in player.client.prefs.be_special))
-			continue
-
-		if(player.mind.has_antag_datum(/datum/antagonist) || player.mind.offstation_role || player.mind.special_role)
+			|| !(role in player.client.prefs.be_special) || !is_player_station_relevant(player))
 			continue
 
 		players += player
@@ -356,34 +353,67 @@
 
 	return candidates
 
+
+/datum/game_mode/proc/get_alive_AIs_for_role(role)
+	. = list()
+	for(var/mob/living/silicon/ai/AI in GLOB.alive_mob_list)
+		if(!AI.client || !AI.mind \
+			|| jobban_isbanned(AI, "Syndicate") || jobban_isbanned(AI, role) \
+			|| !player_old_enough_antag(AI.client, role, JOB_TITLE_AI) || AI.client.prefs?.skip_antag \
+			|| !(role in AI.client.prefs.be_special) || AI.stat == DEAD || AI.control_disabled \
+			|| AI.mind.offstation_role || AI.mind.special_role)
+			continue
+		. += AI.mind
+
+
+/// All the checks required to find baseline human being
+/proc/is_player_station_relevant(mob/living/carbon/human/player)
+	if(QDELING(player))
+		return FALSE
+	if(!player.client)
+		return FALSE
+	if(!player.mind)
+		return FALSE
+	if(player.mind.special_role)	// already "special"
+		return FALSE
+	if(player.mind.offstation_role)	// spawned mobs
+		return FALSE
+	if(player.stat == DEAD)	// no zombies
+		return FALSE
+	var/turf/player_turf = get_turf(player)
+	if(!player_turf)	// nullspace, eh?
+		return FALSE
+	if(!is_level_reachable(player_turf.z) && !is_away_level(player_turf.z))	// taipan is not available, mkay?
+		return FALSE
+	if(is_monkeybasic(player))	// no monkas
+		return FALSE
+	if(isgolem(player))	// get out of here
+		return FALSE
+	if(is_evolvedslime(player))	// no evolved slimes please
+		return FALSE
+	return TRUE	// congratulations, you are normal!
+
+
 /datum/game_mode/proc/latespawn(mob/player)
 
 
 /datum/game_mode/proc/num_players()
 	. = 0
-
 	for(var/mob/new_player/player in GLOB.player_list)
-
 		if(player.client && player.ready)
 			.++
+
 
 /proc/num_station_players()
 	. = 0
 	for(var/mob/living/carbon/human/player in GLOB.player_list)
-		if(!player)
-			continue
-
-		if(player.client && player.mind && !player.mind.offstation_role && !player.mind.special_role)
+		if(is_player_station_relevant(player))
 			.++
 
 
 /datum/game_mode/proc/num_players_started()
 	. = 0
-
 	for(var/mob/living/carbon/human/player in GLOB.player_list)
-		if(!player)
-			continue
-
 		if(player.client)
 			.++
 
@@ -688,31 +718,54 @@
 	antaghud.leave_hud(mob_mind.current)
 	set_antag_hud(mob_mind.current, null)
 
+/datum/game_mode/proc/apocalypse_cinema(obj/singularity/god/god, inevitable = FALSE)
+	if(god.soul_devoured <= 17 && !inevitable)
+		return FALSE
+
+	if(istype(god, /obj/singularity/god/narsie))
+		return SSticker.cultdat.apocalypse_cinema
+
+	if(istype(god, /obj/singularity/god/ratvar))
+		return /datum/cinematic/cult_arm_ratvar
+
+	return FALSE
+
 /datum/game_mode/proc/apocalypse()
 	set_security_level(SEC_LEVEL_DELTA)
-	GLOB.priority_announcement.Announce("Обнаружена угроза класса 'Разрушитель миров'. Самостоятельное решение задачи маловероятно. Моделирование пути решения начато, ожидайте.", "Отдел Центрального Командования по делам высших измерений", 'sound/AI/commandreport.ogg')
+	GLOB.priority_announcement.Announce("Обнаружена угроза класса 'Разрушитель миров'. Моделирование пути противостояния угрозе начато, ожидайте.", "Отдел Центрального Командования по делам высших измерений", 'sound/AI/commandreport.ogg')
 	sleep(50 SECONDS)
-	GLOB.priority_announcement.Announce("Моделирование завершено. Меры будут приняты в ближайшем времени. Всему живому персоналу: не допустите усиления угрозы любой ценой.", "Отдел Центрального Командования по делам высших измерений", 'sound/AI/commandreport.ogg')
+	GLOB.priority_announcement.Announce("Моделирование завершено. Всему живому персоналу: не допустите усиления угрозы любой ценой. Меры будут приняты в ближайшее время.", "Отдел Центрального Командования по делам высших измерений", 'sound/AI/commandreport.ogg')
 	sleep(30 SECONDS)
-	var/obj/singularity/narsie/N = locate(/obj/singularity/narsie) in GLOB.poi_list
-	var/obj/singularity/ratvar/R = locate(/obj/singularity/ratvar) in GLOB.poi_list
-	if(!N && !R)
-		GLOB.priority_announcement.Announce("Угроза пропала с наших сенсоров. Нам требуется срочный отчет о вашей ситуации. Но, мгм, пока что мы санкционировали вам экстренную эвакуацию.", 'sound/AI/commandreport.ogg')
+
+	var/obj/singularity/god/god = locate(/obj/singularity/god) in GLOB.poi_list
+
+	if(!god)
+		GLOB.priority_announcement.Announce("Угроза пропала с наших сенсоров. Санкционирована экстренная эвакуация.", "Отдел Центрального Командования по делам высших измерений", 'sound/AI/commandreport.ogg')
 		SSshuttle.emergency.request(null, 0.3)
 		SSshuttle.emergency.canRecall = FALSE
 		return
-	if(SSticker.cultdat.name == "Cult of Nar'Sie")
-		if(N.soul_devoured > 20)
-			play_cinematic(/datum/cinematic/cult_arm, world)
-			sleep(15 SECONDS)
-			SSticker.force_ending = TRUE
-			return
-	play_cinematic(/datum/cinematic/nuke/self_destruct, world)
-	sleep(8 SECONDS)
-	SSticker.force_ending = TRUE
-	qdel(R)
-	qdel(N)
 
+	var/datum/cinematic/cinema = apocalypse_cinema(god, FALSE)
+
+	if(!cinema)
+		var/obj/machinery/nuclearbomb/bomb
+		for(var/obj/machinery/nuclearbomb/bomb_to_find in GLOB.poi_list)
+			if(is_station_level(bomb_to_find.z) && bomb_to_find.core)
+				bomb = bomb_to_find
+				break
+
+		if(bomb)
+			bomb.safety = FALSE
+			bomb.explode()
+			qdel(god)
+			return
+
+		cinema = apocalypse_cinema(god, TRUE)
+
+	play_cinematic(cinema, world)
+	sleep(15 SECONDS)
+	SSticker.force_ending = TRUE
+	return
 
 #undef NUKE_INTACT
 #undef NUKE_CORE_MISSING

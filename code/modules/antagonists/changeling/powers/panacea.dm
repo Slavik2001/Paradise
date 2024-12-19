@@ -21,15 +21,12 @@
 		borer.leave_host()
 		if(iscarbon(user))
 			var/mob/living/carbon/c_user = user
-			c_user.vomit(FALSE)
+			c_user.fakevomit()
+			c_user.Stun(VOMIT_STUN_TIME)
 
-	var/obj/item/organ/internal/body_egg/egg = user.get_int_organ(/obj/item/organ/internal/body_egg)
-	if(egg)
-		egg.remove(user)
-		if(iscarbon(user))
-			var/mob/living/carbon/human/c_user = user
-			c_user.vomit()
-		egg.forceMove(get_turf(user))
+	if(iscarbon(user))
+		var/mob/living/carbon/c_user = user
+		c_user.remove_all_parasites(vomit_organs = TRUE)
 
 	user.reagents.add_reagent("mutadone", 2)
 	user.apply_status_effect(STATUS_EFFECT_PANACEA)

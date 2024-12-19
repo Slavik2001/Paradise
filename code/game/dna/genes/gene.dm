@@ -10,21 +10,31 @@
 */
 
 /datum/dna/gene
-	// Display name
+	/// Display name
 	var/name = "BASE GENE"
 
-	// Probably won't get used but why the fuck not
+	/// Probably won't get used but why the fuck not
 	var/desc="Oh god who knows what this does."
 
-	// Set in initialize()!
-	//  What gene activates this?
-	var/block = 0
+	/// What gene activates this?
+	/// Should be set on Initialize() only!
+	var/block
 
-	// Any of a number of GENE_ flags.
-	var/flags = 0
+	/// Any of a number of GENE_ flags.
+	var/flags = NONE
 
-	// Chance of the gene to cause adverse effects when active
+	/// Chance of the gene to cause adverse effects when active
 	var/instability = 0
+
+	/// Which traits gene gives
+	var/list/traits_to_add
+
+
+/datum/dna/gene/Destroy(force)
+	if(force)
+		return ..()
+	// put your hands off the gene GC!
+	return QDEL_HINT_LETMELIVE
 
 
 /*
@@ -49,6 +59,8 @@
 	SHOULD_CALL_PARENT(TRUE)
 	LAZYOR(mutant.active_genes, type)
 	mutant.gene_stability -= instability
+	if(length(traits_to_add))
+		mutant.add_traits(traits_to_add, DNA_TRAIT)
 	mutant.update_mutations()
 
 
@@ -60,6 +72,8 @@
 	SHOULD_CALL_PARENT(TRUE)
 	LAZYREMOVE(mutant.active_genes, type)
 	mutant.gene_stability += instability
+	if(length(traits_to_add))
+		mutant.remove_traits(traits_to_add, DNA_TRAIT)
 	mutant.update_mutations()
 
 
@@ -108,20 +122,14 @@
 /datum/dna/gene/basic
 	name = "BASIC GENE"
 
-	// Mutation to give
-	var/mutation = 0
-
-	// Activation probability
+	/// Activation probability
 	var/activation_prob = 100
 
-	// Possible activation messages
-	var/list/activation_messages = list()
+	/// Possible activation messages
+	var/list/activation_messages
 
-	// Possible deactivation messages
-	var/list/deactivation_messages = list()
-
-	//which traits gene gives
-	var/list/traits_to_add = list()
+	/// Possible deactivation messages
+	var/list/deactivation_messages
 
 
 /datum/dna/gene/basic/can_activate(mob/living/mutant, flags)
@@ -133,9 +141,6 @@
 
 /datum/dna/gene/basic/activate(mob/living/mutant, flags)
 	. = ..()
-	mutant.mutations |= mutation
-	for(var/trait in traits_to_add)
-		ADD_TRAIT(mutant, trait, DNA_TRAIT)
 	if(length(activation_messages))
 		var/msg = pick(activation_messages)
 		to_chat(mutant, span_notice("[msg]"))
@@ -143,10 +148,35 @@
 
 /datum/dna/gene/basic/deactivate(mob/living/mutant, flags)
 	. = ..()
-	mutant.mutations -= mutation
-	for(var/trait in traits_to_add)
-		REMOVE_TRAIT(mutant, trait, DNA_TRAIT)
 	if(length(deactivation_messages))
 		var/msg = pick(deactivation_messages)
 		to_chat(mutant, span_warning("[msg]"))
+
+
+// placeholders for empty FAKE genes
+// you can remake these into your own powers
+
+/datum/dna/gene/basic/fake
+	name = "Ordinary Gene"
+	desc = "Just another link in the DNA strand."
+
+
+/datum/dna/gene/basic/fake/fake1/New()
+	..()
+	block = GLOB.fakeblock1
+
+
+/datum/dna/gene/basic/fake/fake2/New()
+	..()
+	block = GLOB.fakeblock2
+
+
+/datum/dna/gene/basic/fake/fake3/New()
+	..()
+	block = GLOB.fakeblock3
+
+
+/datum/dna/gene/basic/fake/fake4/New()
+	..()
+	block = GLOB.fakeblock4
 

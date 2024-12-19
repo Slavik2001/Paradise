@@ -31,10 +31,12 @@
 	var/whisper_verb
 	/// CSS style to use for strings in this language.
 	var/colour = "body"
+	/// Additional spans this language adds to a runechat message (should be defined in skin.dmf -> window "mapwindow" -> elem "map").
+	var/runechat_span
 	/// Character used to speak in language eg. '"un"' for Unathi.
 	var/key = "key"
 	/// Various language flags.
-	var/flags = 0
+	var/flags = NONE
 	/// If set, non-native speakers will have trouble speaking.
 	var/native
 	/// Used when scrambling text for a non-speaker.
@@ -172,6 +174,7 @@
 	ask_verb = "hisses"
 	exclaim_verbs = list("roars")
 	colour = "soghun"
+	runechat_span = "soghun"
 	key = "o"
 	flags = RESTRICTED
 	syllables = list("za","az","ze","ez","zi","iz","zo","oz","zu","uz","zs","sz","ha","ah","he","eh","hi","ih", \
@@ -193,6 +196,7 @@
 	ask_verb = "mrowls"
 	exclaim_verbs = list("yowls")
 	colour = "tajaran"
+	runechat_span = "tajaran"
 	key = "j"
 	flags = RESTRICTED
 	syllables = list("rr","rr","tajr","kir","raj","kii","mir","kra","ahk","nal","vah","khaz","jri","ran","darr", \
@@ -233,6 +237,7 @@
 	ask_verb = "rurs"
 	exclaim_verbs = list("barks")
 	colour = "vulpkanin"
+	runechat_span = "vulpkanin"
 	key = "7"
 	flags = RESTRICTED
 	syllables = list("rur","ya","cen","rawr","bar","kuk","tek","qat","uk","wu","vuh","tah","tch","schz","auch", \
@@ -247,9 +252,68 @@
 	ask_verb = "warbles"
 	exclaim_verbs = list("warbles")
 	colour = "skrell"
+	runechat_span = "skrell"
 	key = "k"
 	flags = RESTRICTED
 	syllables = list("qr","qrr","xuq","qil","quum","xuqm","vol","xrim","zaoo","qu-uu","qix","qoo","zix","*","!")
+
+
+#define SKRELL_ADDITIONAL_SYLLABLES 2 // Maximum of additional syllables for first and second names
+
+/datum/language/skrell/get_random_name() // Name generator authors: @saichi23 && @cadavrik
+	// Now I love making list in list in list in list in list
+	// Two sublists were made by authors so that the names would turn out most consonant for reading (in a way that's possible for skrells)
+	var/list/ru_name_syllables = list(
+		list(	// list 1
+			list("заоо", "зао", "зикс", "зо", "йуо", "кью", "кьюм", "кси", "ксу", "квум", "кву",	// sublist1
+				"кви", "квей", "квиш", "куу", "кюан", "киэн", "ку", "кил", "лиа", "люик", "луи",
+				"рио", "сейу", "тсой", "уль", "улур", "урр", "ур", "цу", "эль", "эо", "эу"),
+
+			list(
+			"аг", "вум", "вул", "вол", "гли", "зи", "заоо", "зао", "зикс", "зуо", "зук", "зуво",	// sublist2
+			"икс", "ил", "ис", "йук", "кву", "квум", "куум", "куо", "куа", "куак", "кул", "квол",
+			"кью", "кьюа", "кэ", "кин", "кии", "кс", "ки", "киу", "кос", "лоа", "лак", "лум", "лик",
+			"лии", "ллак", "мзикс", "мвол", "ори", "ору", "орр", "ррум", "ру", "руум", "руа", "рл",
+			"сэк", "су", "сиа", "тейе", "тейку", "тсу", "туа", "туи", "ту", "тал", "уат", "уок", "урр",
+			"уоо", "уо", "уик", "уии", "уэк", "эйкс", "эль", "эрр", "эй", "эйс", "о", "у", "а", "з", "э", "м" ,"к", "с", "р"
+			)
+		),
+
+		list(	// list 2
+			list("заоо", "зао", "зо", "йуо", "лиа", "луи", "рио", "сейу", "эо"),	// sublist1
+
+			list(
+			"вум", "вул", "вол", "гли", "зи", "заоо", "зао", "зикс", "зуо", "зук", "зуво",	// sublist2
+			"йук", "кву", "квум", "куум", "куо", "куа", "куак", "кул", "квол", "кью", "кьюа",
+			"кэ", "кин", "кии", "кс", "ки", "киу", "кос", "лоа", "лак", "лум", "лик", "лии", "ллак",
+			"мзикс", "мвол", "ррум", "ру", "руум", "руа", "рл", "сэк", "су", "сиа", "тейе", "тейку",
+			"тсу", "туа", "туи", "ту", "тал", "з", "м", "к", "с", "р"
+			)
+		)
+	)
+
+	var/full_name = ""
+
+	for(var/i in 1 to 2)	// First and second names, making from 2-3 syllables each.
+		var/apostrophe = "'"
+		var/new_name = ""
+		var/using_list = rand(1, LAZYLEN(ru_name_syllables))	// We use only one list for the first name and one list for the second name, without mixing syllables from different lists.
+
+		new_name += pick(ru_name_syllables[using_list][1])	// The first syllable is only from the first sublist.
+
+		for(var/add_syllables in 1 to rand(1, SKRELL_ADDITIONAL_SYLLABLES))	// Additional 1-2 syllables, taken from sublist2.
+			if(apostrophe && prob(50))
+				new_name += apostrophe
+				apostrophe = null // Adding "'" with chance, but only once for first and second names
+
+			new_name += pick(ru_name_syllables[using_list][2])
+
+		full_name += " [capitalize(new_name)]"
+
+	return "[trim(full_name)]"
+
+#undef SKRELL_ADDITIONAL_SYLLABLES
+
 
 /datum/language/vox
 	name = "Vox-pidgin"
@@ -258,6 +322,7 @@
 	ask_verb = "creels"
 	exclaim_verbs = list("loudly skrees")
 	colour = "vox"
+	runechat_span = "vox"
 	key = "v"
 	flags = RESTRICTED | WHITELISTED
 	syllables = list("ti","ti","ti","hi","hi","ki","ki","ki","ki","ya","ta","ha","ka","ya","yi","chi","cha","kah", \
@@ -280,6 +345,7 @@
 	ask_verb = "creaks"
 	exclaim_verbs = list("rustles")
 	colour = "diona"
+	runechat_span = "diona"
 	key = "q"
 	flags = RESTRICTED
 	syllables = list("hs","zt","kr","st","sh")
@@ -296,6 +362,7 @@
 	ask_verb = "queries"
 	exclaim_verbs = list("exclaims")
 	colour = "trinary"
+	runechat_span = "trinary"
 	key = "5"
 	flags = RESTRICTED | WHITELISTED
 	syllables = list("0+2+0+1+1","0+1+2+2+2","1+0+1+0+0","1+0+2+1+0","2+1+0+1+2","0+2+0+1+1","2+1+2+0+0","1+0+0+2","2+0+0+1","0+0+0+2","0+0+1+2","0+0+1+2","0+0+0","1+2+0","1+2+1","2+0+1","2+2+0","1+0","1+1","0")
@@ -315,6 +382,7 @@
 	ask_verb = "rubs their antennae together"
 	exclaim_verbs = list("rubs their antennae together")
 	colour = "kidan"
+	runechat_span = "kidan"
 	key = "4"
 	flags = RESTRICTED | WHITELISTED
 	syllables = list("click","clack")
@@ -335,6 +403,7 @@
 	ask_verb = "bubbles and pops"
 	exclaim_verbs = list("bubbles and pops")
 	colour = "slime"
+	runechat_span = "slime"
 	key = "f"
 	flags = RESTRICTED | WHITELISTED
 	syllables = list("blob","plop","pop","bop","boop")
@@ -346,6 +415,7 @@
 	ask_verb = "inquires"
 	exclaim_verbs = list("imparts")
 	colour = "abductor"
+	runechat_span = "abductor"
 	key = "^"
 	flags = RESTRICTED | HIVEMIND
 	follow = TRUE
@@ -381,6 +451,7 @@
 	ask_verb = "hums"
 	exclaim_verbs = list("rumbles")
 	colour = "drask"
+	runechat_span = "drask"
 	key = "%"
 	flags = RESTRICTED | WHITELISTED
 	syllables = list("hoorb","vrrm","ooorm","urrrum","ooum","ee","ffm","hhh","mn","ongg")
@@ -398,6 +469,7 @@
 	ask_verb = "flaps"
 	exclaim_verbs = list("chatters")
 	colour = "moth"
+	runechat_span = "moth"
 	key = "#"
 	flags = RESTRICTED | WHITELISTED
 	join_override = "-"
@@ -431,6 +503,7 @@
 	exclaim_verbs = list("exclaims", "shouts", "yells")
 	whisper_verb = "whispers"
 	colour = "solcom"
+	runechat_span = "solcom"
 	key = "1"
 	flags = RESTRICTED
 	syllables = list("tao","shi","tzu","yi","com","be","is","i","op","vi","ed","lec","mo","cle","te","dis","e")
@@ -470,6 +543,7 @@
 	ask_verb = "honks"
 	exclaim_verbs = list("toots", "wubs", "honks")
 	colour = "clown"
+	runechat_span = "clown"
 	key = "0"
 	syllables = list ("honk","squeak","bonk","toot","narf","zub","wee","wub","norf")
 
@@ -480,6 +554,7 @@
 	whisper_verb = "mutters"
 	exclaim_verbs = list("exaggerates")
 	colour = "com_srus"
+	runechat_span = "com_srus"
 	key = "?"
 	space_chance = 65
 	english_names = TRUE
@@ -833,9 +908,13 @@
 
 // Language handling.
 /mob/proc/add_language(language_name)
+	if(SEND_SIGNAL(src, COMSIG_MOB_LANGUAGE_ADD, language_name) & DISEASE_MOB_LANGUAGE_PROCESSED)
+		return TRUE
+
 	var/datum/language/new_language = GLOB.all_languages[language_name]
 	if(new_language in languages)
 		return FALSE
+
 	if(!istype(new_language))
 		new_language = GLOB.all_languages[convert_lang_key_to_name(language_name)]
 		if(!istype(new_language))
@@ -847,6 +926,9 @@
 
 
 /mob/proc/remove_language(language_name)
+	if(SEND_SIGNAL(src, COMSIG_MOB_LANGUAGE_REMOVE, language_name) & DISEASE_MOB_LANGUAGE_PROCESSED)
+		return TRUE
+
 	var/datum/language/rem_language = GLOB.all_languages[language_name]
 	if(!istype(rem_language))
 		rem_language = GLOB.all_languages[convert_lang_key_to_name(language_name)]
@@ -867,6 +949,7 @@
 
 	if(default_language == rem_language)
 		default_language = null
+
 	return ..()
 
 

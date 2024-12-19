@@ -7,11 +7,11 @@
 
 
 /datum/dna/gene/monkey/can_activate(mob/living/mutant, flags)
-	return ishuman(mutant) && !ismonkeybasic(mutant) && !HAS_TRAIT(mutant, TRAIT_NO_TRANSFORM)
+	return ishuman(mutant) && !is_monkeybasic(mutant) && !HAS_TRAIT(mutant, TRAIT_NO_TRANSFORM)
 
 
 /datum/dna/gene/monkey/can_deactivate(mob/living/mutant, flags)
-	return ishuman(mutant) && ismonkeybasic(mutant) && !HAS_TRAIT(mutant, TRAIT_NO_TRANSFORM)
+	return ishuman(mutant) && is_monkeybasic(mutant) && !HAS_TRAIT(mutant, TRAIT_NO_TRANSFORM)
 
 
 /datum/dna/gene/monkey/activate(mob/living/carbon/human/mutant, flags)
@@ -38,7 +38,8 @@
 		mutant.gib()
 		return
 
-	to_chat(mutant, "<B>You are now a [mutant.dna.species.name].</B>")
+	mutant.balloon_alert(mutant, "вы трансформировались!")
+	to_chat(mutant, span_big("Вы трансформировались в [mutant.dna.species.name]."))
 
 
 /datum/dna/gene/monkey/deactivate(mob/living/carbon/human/mutant, flags)
@@ -70,5 +71,6 @@
 	mutant.real_name = mutant.dna.real_name
 	mutant.name = mutant.real_name
 
-	to_chat(mutant, "<B>You are now a [mutant.dna.species.name].</B>")
+	mutant.balloon_alert(mutant, "вы трансформировались!")
+	to_chat(mutant, span_big("Вы трансформировались в [mutant.dna.species.name]."))
 

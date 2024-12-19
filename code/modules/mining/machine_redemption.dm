@@ -2,6 +2,7 @@
 #define BASE_SHEET_MULT 0.5
 #define POINT_MULT_ADD_PER_RATING 0.35
 #define SHEET_MULT_ADD_PER_RATING 0.2
+#define MESSAGES_WAIT_TIME 1 MINUTES
 
 /**
   * # Ore Redemption Machine
@@ -28,15 +29,16 @@
 	/// List of supply console department names that can receive a notification about ore dumps.
 	/// A list may be provided as entry value to only notify when specific ore is dumped.
 	var/list/supply_consoles = list(
-		"Science",
-		"Robotics",
-		"Research Director's Desk",
-		"Mechanic",
-		"Engineering" = list(MAT_METAL, MAT_GLASS, MAT_PLASMA),
-		"Chief Engineer's Desk" = list(MAT_METAL, MAT_GLASS, MAT_PLASMA),
-		"Atmospherics" = list(MAT_METAL, MAT_GLASS, MAT_PLASMA),
-		"Bar" = list(MAT_URANIUM, MAT_PLASMA),
-		"Virology" = list(MAT_PLASMA, MAT_URANIUM, MAT_GOLD)
+		RC_SCIENCE,
+		RC_RESEARCH,
+		RC_ROBOTICS,
+		RC_RESEARCH_DIRECTOR_DESK,
+		RC_MECHANIC,
+		RC_ENGINEERING = list(MAT_METAL, MAT_GLASS, MAT_PLASMA),
+		RC_CHIEF_ENGINEER_DESK = list(MAT_METAL, MAT_GLASS, MAT_PLASMA),
+		RC_ATMOSPHERICS = list(MAT_METAL, MAT_GLASS, MAT_PLASMA),
+		RC_BAR = list(MAT_URANIUM, MAT_PLASMA),
+		RC_VIROLOGY = list(MAT_PLASMA, MAT_URANIUM, MAT_GOLD)
 	)
 	// Variables
 	/// The currently inserted ID.
@@ -55,6 +57,7 @@
 	var/datum/research/files
 	/// The currently inserted design disk.
 	var/obj/item/disk/design_disk/inserted_disk
+	COOLDOWN_DECLARE(messages_cooldown)
 
 /obj/machinery/mineral/ore_redemption/New()
 	..()
@@ -186,34 +189,48 @@
 	// Process it
 	if(length(ore_buffer))
 		message_sent = FALSE
+		if(!COOLDOWN_STARTED(src, messages_cooldown))
+			COOLDOWN_START(src, messages_cooldown, MESSAGES_WAIT_TIME)
 		process_ores(ore_buffer)
-	else if(!message_sent)
+
+	if(COOLDOWN_FINISHED(src, messages_cooldown) && !message_sent)
 		SStgui.update_uis(src)
+		COOLDOWN_RESET(src, messages_cooldown)
 		send_console_message()
 		message_sent = TRUE
 
 // Interactions
-/obj/machinery/mineral/ore_redemption/attackby(obj/item/W, mob/user, params)
-	if(exchange_parts(user, W))
-		return
+/obj/machinery/mineral/ore_redemption/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
+	if(exchange_parts(user, I))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
 	if(!powered())
 		return ..()
 
-	if(istype(W, /obj/item/card/id))
-		if(try_insert_id(user))
-			add_fingerprint(user)
-		return
-	else if(istype(W, /obj/item/disk/design_disk))
-		if(!user.drop_transfer_item_to_loc(W, src))
-			return
+	if(istype(I, /obj/item/card/id))
 		add_fingerprint(user)
-		inserted_disk = W
+		if(!try_insert_id(user))
+			return ..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(istype(I, /obj/item/disk/design_disk))
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		add_fingerprint(user)
+		inserted_disk = I
 		SStgui.update_uis(src)
 		interact(user)
-		user.visible_message("<span class='notice'>[user] inserts [W] into [src].</span>", \
-						 	 "<span class='notice'>You insert [W] into [src].</span>")
-		return
+		user.visible_message(
+			span_notice("[user] has inserted [I] into [src]."),
+			span_notice("You have inserted [I] into [src]."),
+		)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
+
 
 /obj/machinery/mineral/ore_redemption/crowbar_act(mob/user, obj/item/I)
 	if(default_deconstruction_crowbar(user, I))
@@ -377,15 +394,18 @@
 			return FALSE
 	add_fingerprint(usr)
 
-/obj/machinery/mineral/ore_redemption/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	var/datum/asset/materials_assets = get_asset_datum(/datum/asset/simple/materials)
-	materials_assets.send(user)
-
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/mineral/ore_redemption/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "OreRedemption", name, 500, 820)
+		ui = new(user, src, "OreRedemption", name)
 		ui.open()
 		ui.set_autoupdate(FALSE)
+
+/obj/machinery/mineral/ore_redemption/ui_assets(mob/user)
+	return list(
+		get_asset_datum(/datum/asset/spritesheet/materials),
+		get_asset_datum(/datum/asset/spritesheet/alloys)
+	)
 
 /**
   * Smelts the given stack of ore.
@@ -471,7 +491,7 @@
 		if(!(C.department in supply_consoles))
 			continue
 		if(!supply_consoles[C.department] || length(supply_consoles[C.department] - mats_in_stock))
-			C.createMessage("Плавильная печь", "Новые ресурсы доступны!", msg, 1) // RQ_NORMALPRIORITY
+			C.createMessage(ORE_REDEMPTION, "Новые ресурсы доступны!", msg, 1) // RQ_NORMALPRIORITY
 
 /**
   * Tries to insert the ID card held by the given user into the machine.

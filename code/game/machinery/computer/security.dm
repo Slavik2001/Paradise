@@ -6,7 +6,7 @@
 
 /obj/machinery/computer/secure_data
 	name = "security records"
-	desc = "Used to view and edit personnel's security records."
+	desc = "Используется для просмотра и редактирования записей службы безопасности о персонале."
 	icon_keyboard = "security_key"
 	icon_screen = "security"
 	circuit = /obj/item/circuitboard/secure_data
@@ -60,11 +60,17 @@
 	record_security = null
 	return ..()
 
-/obj/machinery/computer/secure_data/attackby(obj/item/O, mob/user, params)
-	if(ui_login_attackby(O, user))
+
+/obj/machinery/computer/secure_data/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
+	if(ui_login_attackby(I, user))
 		add_fingerprint(user)
-		return
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
+
 
 /obj/machinery/computer/secure_data/attack_hand(mob/user)
 	if(..())
@@ -78,10 +84,10 @@
 /obj/machinery/computer/secure_data/ui_host()
 	return parent ? parent : src
 
-/obj/machinery/computer/secure_data/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/computer/secure_data/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "SecurityRecords", name, 800, 800)
+		ui = new(user, src, "SecurityRecords", name)
 		ui.open()
 		ui.set_autoupdate(FALSE)
 
@@ -196,7 +202,7 @@
 				return
 			var/datum/data/record/G = new /datum/data/record()
 			G.fields["name"] = "New Record"
-			G.fields["id"] = "[add_zero(num2hex(rand(1, 1.6777215E7)), 6)]"
+			G.fields["id"] = "[add_zero(num2hex(rand(1, 1.6777215E7), 2), 6)]"
 			G.fields["rank"] = "Unassigned"
 			G.fields["real_rank"] = "Unassigned"
 			G.fields["sex"] = "Male"
@@ -358,12 +364,19 @@
 						return
 
 					if(field == "age")
-						var/new_age = text2num(answer)
-						if(new_age < AGE_MIN || new_age > AGE_MAX)
-							set_temp("Invalid age. It must be between [AGE_MIN] and [AGE_MAX].", "danger")
+						if(!record_general)
 							return
+
+						var/datum/species/species = record_general.fields["species"]
+						var/new_age = text2num(answer)
+						var/age_limits = get_age_limits(species, list(SPECIES_AGE_MIN, SPECIES_AGE_MAX))
+						if(new_age < age_limits[SPECIES_AGE_MIN] || new_age > age_limits[SPECIES_AGE_MAX])
+							set_temp("Invalid age. It must be between [age_limits[SPECIES_AGE_MIN]] and [age_limits[SPECIES_AGE_MAX]].", "danger")
+							return
+
 						answer = new_age
-					else if(field == "criminal")
+
+					if(field == "criminal")
 						var/text = "Please enter a reason for the status change to [answer]:"
 						if(answer == SEC_RECORD_STATUS_EXECUTE)
 							text = "Please explain why they are being executed. Include a list of their crimes, and victims."
@@ -505,7 +518,7 @@
 
 /obj/machinery/computer/secure_data/laptop
 	name = "security laptop"
-	desc = "Nanotrasen Security laptop. Bringing modern compact computing to this century!"
+	desc = "Ноутбук службы безопасности Nanotrasen. Привносим современные компактные компьютеры в наше столетие!"
 	icon_state = "laptop"
 	icon_keyboard = "seclaptop_key"
 	icon_screen = "seclaptop"

@@ -16,6 +16,8 @@
 	var/hides = 0
 	var/plates = 0
 
+	mech_type = MECH_TYPE_RIPLEY
+
 
 /obj/mecha/working/ripley/Destroy()
 	for(var/i=1, i <= hides, i++)
@@ -101,7 +103,7 @@
 	initial_icon = "deathripley"
 	step_in = 3
 	slow_pressure_step_in = 3
-	opacity=0
+	opacity = FALSE
 	max_temperature = 65000
 	max_integrity = 300
 	lights_power = 7

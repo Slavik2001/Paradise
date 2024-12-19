@@ -1,8 +1,8 @@
 //Station goal stuff goes here
 /datum/station_goal/bluespace_tap
 	name = "Bluespace Harvester"
-	gamemode_blacklist = list("extended")
 	var/goal = 25000
+
 
 /datum/station_goal/bluespace_tap/get_report()
 	return {"<b>Bluespace Harvester Experiment</b><br>
@@ -15,21 +15,29 @@
 	<br>
 	Nanotrasen Science Directorate"}
 
+
 /datum/station_goal/bluespace_tap/on_report()
 	var/datum/supply_packs/misc/station_goal/bluespace_tap/P = SSshuttle.supply_packs["[/datum/supply_packs/misc/station_goal/bluespace_tap]"]
 	P.special_enabled = TRUE
 	supply_list.Add(P)
 
+
+/datum/station_goal/bluespace_tap/proc/get_highscore()
+	. = 0
+
+	for(var/obj/machinery/power/bluespace_tap/harvester in GLOB.machines)
+		. = max(., harvester.total_points)
+
+
 /datum/station_goal/bluespace_tap/check_completion()
-	if(..())
-		return TRUE
-	var/highscore = 0
-	for(var/obj/machinery/power/bluespace_tap/T in GLOB.machines)
-		highscore = max(highscore, T.total_points)
-	to_chat(world, "<b>Bluespace Harvester Highscore</b>: [highscore >= goal ? "<span class='greenannounce'>": "<span class='boldannounce'>"][highscore]</span>")
-	if(highscore >= goal)
-		return TRUE
-	return FALSE
+	return ..() || get_highscore() >= goal
+
+
+/datum/station_goal/bluespace_tap/print_result()
+	..()
+	var/highscore = get_highscore()
+	to_chat(world, "<b>Bluespace Harvester Highscore</b>: [highscore >= goal ? "<span class='greenannounce'>": "<span class='boldannounceooc'>"][highscore]</span>")
+
 
 //needed for the vending part of it
 /datum/data/bluespace_tap_product
@@ -85,7 +93,7 @@
 /obj/effect/spawner/lootdrop/bluespace_tap/cultural
 	name = "cultural artifacts"
 	loot = list(
-		/obj/vehicle/space/speedbike/red = 10,
+		/obj/vehicle/ridden/speedbike/red = 10,
 		/obj/item/grenade/clusterbuster/honk = 10,
 		/obj/item/toy/katana = 10,
 		/obj/item/stack/sheet/mineral/abductor/fifty = 20,
@@ -97,7 +105,7 @@
 		/obj/item/gun/projectile/automatic/c20r/toy = 1,
 		/obj/item/gun/projectile/automatic/l6_saw/toy = 1,
 		/obj/item/gun/projectile/automatic/toy/pistol = 2,
-		/obj/item/gun/projectile/automatic/toy/pistol/enforcer = 1,
+		/obj/item/gun/projectile/automatic/toy/pistol/enforcer/riot = 1,
 		/obj/item/gun/projectile/shotgun/toy = 1,
 		/obj/item/gun/projectile/shotgun/toy/crossbow = 1,
 		/obj/item/gun/projectile/shotgun/toy/tommygun = 1,
@@ -424,10 +432,10 @@
 			var/key = text2num(params["target"])
 			produce(key)
 
-/obj/machinery/power/bluespace_tap/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/power/bluespace_tap/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "BluespaceTap", name, 650, 400, master_ui, state)
+		ui = new(user, src, "BluespaceTap", name)
 		ui.open()
 
 //emaging provides slightly more points but at much greater risk

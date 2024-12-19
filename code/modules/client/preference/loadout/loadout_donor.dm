@@ -1,7 +1,31 @@
 /datum/gear/donor
-	donator_tier = 2
+	var/donator_tier = 2
 	sort_category = "Donor"
 	subtype_path = /datum/gear/donor
+
+/datum/gear/donor/can_select(client/cl, job_name, species_name, silent = FALSE)
+	if(!..()) // there's no point in being here
+		return FALSE
+
+	if(!donator_tier) // why are you here?.. allowed, but
+		stack_trace("Item with no donator tier in loadout donor items: [display_name].")
+		return TRUE
+
+	if(!cl.prefs) // DB loading, skip this check now
+		return TRUE
+
+	if(cl?.donator_level >= donator_tier)
+		return TRUE
+
+	if(cl && !silent)
+		to_chat(cl, span_warning("Для получения \"[display_name]\" необходим [donator_tier] или более высокий уровень пожертвований."))
+
+	return FALSE
+
+
+/datum/gear/donor/get_header_tips()
+	return "\[Tier [donator_tier]\] "
+
 
 /datum/gear/donor/ussptracksuit_black
 	donator_tier = 1
@@ -18,6 +42,12 @@
 /datum/gear/donor/kittyears
 	display_name = "Kitty ears"
 	path = /obj/item/clothing/head/kitty
+
+/datum/gear/donor/leather_trenchcoat
+	display_name = "Leather Trenchcoat"
+	path = /obj/item/clothing/suit/storage/leather_trenchcoat/runner
+	donator_tier = 2
+	cost = 1
 
 /datum/gear/donor/furgloves
 	display_name = "Fur Gloves"
@@ -86,6 +116,14 @@
 /datum/gear/donor/fawkes
 	display_name = "Guy Fawkes mask"
 	path = /obj/item/clothing/mask/face/fawkes
+
+/datum/gear/donor/bigbrother
+	display_name = "Spraycan Big Brother"
+	path = /obj/item/toy/crayon/spraycan/paintkit/bigbrother
+
+/datum/gear/donor/slavic
+	display_name = "Spraycan Slavic"
+	path = /obj/item/toy/crayon/spraycan/paintkit/slavic
 
 /datum/gear/donor/id_decal_silver
 	display_name = "Silver ID Decal"
@@ -198,6 +236,24 @@
 	cost = 1
 	allowed_roles = list(JOB_TITLE_REPRESENTATIVE)
 
+/datum/gear/donor/strip/syndi
+	display_name = "strip, Syndicate"
+	path = /obj/item/clothing/accessory/head_strip/syndicate
+	donator_tier = 3
+	cost = 1
+
+/datum/gear/donor/strip/comrad
+	display_name = "strip, SSSP"
+	path = /obj/item/clothing/accessory/head_strip/comrad
+	donator_tier = 3
+	cost = 1
+
+/datum/gear/donor/strip/federal
+	display_name = "strip, TSF"
+	path = /obj/item/clothing/accessory/head_strip/federal
+	donator_tier = 3
+	cost = 1
+
 /datum/gear/donor/heartglasses
 	display_name = "heart-shaped glasses, color"
 	path = /obj/item/clothing/glasses/heart
@@ -206,7 +262,72 @@
 	slot = ITEM_SLOT_EYES
 
 /datum/gear/donor/heartglasses/New()
+	..()
 	gear_tweaks += new /datum/gear_tweak/color(parent = src)
+
+/datum/gear/donor/heart_meson
+	display_name = "Heart Meson Glasses"
+	path = /obj/item/clothing/glasses/meson/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CHIEF, JOB_TITLE_ENGINEER, JOB_TITLE_ATMOSTECH, JOB_TITLE_MECHANIC, JOB_TITLE_QUARTERMASTER, JOB_TITLE_MINER, JOB_TITLE_CAPTAIN, JOB_TITLE_ENGINEER_TRAINEE)
+
+/datum/gear/donor/heart_science
+	display_name = "Heart Science Glasses"
+	path = /obj/item/clothing/glasses/science/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CAPTAIN, JOB_TITLE_SCIENTIST, JOB_TITLE_ROBOTICIST, JOB_TITLE_RD, JOB_TITLE_GENETICIST, JOB_TITLE_CHEMIST, JOB_TITLE_SCIENTIST_STUDENT)
+
+/datum/gear/donor/heart_health
+	display_name = "Heart Medical Glasses"
+	path = /obj/item/clothing/glasses/hud/health/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CAPTAIN, JOB_TITLE_CMO, JOB_TITLE_INTERN, JOB_TITLE_PARAMEDIC, JOB_TITLE_VIROLOGIST, JOB_TITLE_BLUESHIELD, JOB_TITLE_PSYCHIATRIST, JOB_TITLE_DOCTOR, JOB_TITLE_CORONER)
+
+/datum/gear/donor/heart_diagnostic
+	display_name = "Heart Diagnostic Glasses"
+	path = /obj/item/clothing/glasses/hud/diagnostic/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CAPTAIN, JOB_TITLE_RD, JOB_TITLE_ROBOTICIST)
+
+/datum/gear/donor/heart_security
+	display_name = "Heart Security Glasses"
+	path = /obj/item/clothing/glasses/hud/security/sunglasses/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CAPTAIN, JOB_TITLE_DETECTIVE, JOB_TITLE_PILOT, JOB_TITLE_HOS, JOB_TITLE_WARDEN, JOB_TITLE_BLUESHIELD, JOB_TITLE_JUDGE, JOB_TITLE_OFFICER)
+
+/datum/gear/donor/heartsec_read
+	display_name = "Heart Security Glasses"
+	path = /obj/item/clothing/glasses/hud/security/sunglasses/heart/read_only
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_LAWYER)
+
+/datum/gear/donor/heart_hydroponic
+	display_name = "Heart Hydroponic Glasses"
+	path = /obj/item/clothing/glasses/hud/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CAPTAIN, JOB_TITLE_BOTANIST)
+
+/datum/gear/donor/heart_skills
+	display_name = "Heart Skills Glasses"
+	path = /obj/item/clothing/glasses/hud/skills/heart
+	donator_tier = 4
+	cost = 2
+	slot = ITEM_SLOT_EYES
+	allowed_roles = list(JOB_TITLE_CAPTAIN, JOB_TITLE_REPRESENTATIVE, JOB_TITLE_BLUESHIELD, JOB_TITLE_HOP)
 
 /datum/gear/donor/night_dress
 	display_name = "night dress, select"
@@ -299,6 +420,12 @@
 	donator_tier = 3
 	cost = 1
 
+/datum/gear/donor/earring_NT
+	display_name = "Earrings NT"
+	path = /obj/item/clothing/ears/earrings/Nt
+	donator_tier = 3
+	cost = 1
+
 /datum/gear/donor/hijab
 	donator_tier = 1
 	cost = 1
@@ -311,3 +438,63 @@
 	display_name = "victorian blue-white dress"
 	path = /obj/item/clothing/under/steampunkdress
 
+/datum/gear/donor/plaidhoodie_green
+	donator_tier = 1
+	cost = 1
+	display_name = "Plaid hoodie, green"
+	path = /obj/item/clothing/suit/hoodie/plaidhoodie_green
+
+/datum/gear/donor/plaidhoodie_white
+	donator_tier = 1
+	cost = 1
+	display_name = "Plaid hoodie, white"
+	path = /obj/item/clothing/suit/hoodie/plaidhoodie_white
+
+/datum/gear/donor/plaidhoodie_red
+	donator_tier = 1
+	cost = 1
+	display_name = "Plaid hoodie, red"
+	path = /obj/item/clothing/suit/hoodie/plaidhoodie_red
+
+/datum/gear/donor/plaidhoodie_yellow
+	donator_tier = 1
+	cost = 1
+	display_name = "Plaid hoodie, yellow"
+	path = /obj/item/clothing/suit/hoodie/plaidhoodie_yellow
+
+/datum/gear/donor/blackcoat
+	donator_tier = 2
+	cost = 2
+	display_name = "Black Coat"
+	path = /obj/item/clothing/suit/blackcoat
+
+/datum/gear/donor/pda_beer
+	display_name = "PDA case \"BEER\""
+	path = /obj/item/pda_case/beer
+	donator_tier = 1
+	cost = 1
+
+/datum/gear/donor/maid
+	donator_tier = 2
+	cost = 1
+	display_name = "Short maid costume"
+	path = /obj/item/clothing/under/maid/short
+
+/datum/gear/donor/rdplushie
+	donator_tier = 3
+	cost = 1
+	display_name = "RD doll"
+	path = /obj/item/toy/plushie/rdplushie
+
+/datum/gear/donor/gsbplushie
+	donator_tier = 3
+	cost = 1
+	display_name = "GSBussy doll"
+	path = /obj/item/toy/plushie/gsbplushie
+
+/datum/gear/donor/backpack_shitsec
+	donator_tier = 3
+	cost = 1
+	display_name = "backpack of justice"
+	path = /obj/item/storage/backpack/justice
+	allowed_roles = list(JOB_TITLE_HOS, JOB_TITLE_WARDEN, JOB_TITLE_OFFICER, JOB_TITLE_PILOT)

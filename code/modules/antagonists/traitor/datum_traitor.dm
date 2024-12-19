@@ -32,8 +32,19 @@
 	owner.som.masters += owner
 	return ..()
 
+/datum/antagonist/traitor/apply_innate_effects(mob/living/mob_override)
+	. = ..()
+	var/mob/living/datum_owner = mob_override || owner.current
+	datum_owner.AddComponent(/datum/component/codeword_hearing, GLOB.syndicate_code_phrase_regex, "codephrases", src)
+	datum_owner.AddComponent(/datum/component/codeword_hearing, GLOB.syndicate_code_response_regex, "coderesponses", src)
 
-/datum/antagonist/traitor/Destroy(force, ...)
+/datum/antagonist/traitor/remove_innate_effects(mob/living/mob_override)
+	. = ..()
+	var/mob/living/datum_owner = mob_override || owner.current
+	for(var/datum/component/codeword_hearing/component in datum_owner.GetComponents(/datum/component/codeword_hearing))
+		component.delete_if_from_source(src)
+
+/datum/antagonist/traitor/Destroy(force)
 	// Remove contractor if present
 	var/datum/antagonist/contractor/contractor_datum = owner?.has_antag_datum(/datum/antagonist/contractor)
 	if(contractor_datum)
@@ -47,8 +58,6 @@
 		slaved.serv -= owner
 		slaved.leave_serv_hud(owner)
 		owner.som = null
-
-	owner.current.client?.chatOutput?.clear_syndicate_codes()
 
 	if(hidden_uplink)
 		var/obj/item/uplink_holder = hidden_uplink.loc
@@ -109,7 +118,7 @@
 			return
 
 	for(var/i = objective_count, i < objective_amount)
-		forge_single_human_objective()
+		forge_single_objective()
 		i += 1
 
 	var/martyr_compatibility = TRUE //You can't succeed in stealing if you're dead.
@@ -176,30 +185,6 @@
 
 
 /**
- * Create and assign a single randomized traitor objective.
- */
-/datum/antagonist/traitor/proc/forge_single_human_objective()
-	if(prob(50))
-		if(length(active_ais()) && prob(100 / length(GLOB.player_list)))
-			add_objective(/datum/objective/destroy)
-
-		else if(prob(5))
-			add_objective(/datum/objective/debrain)
-
-		else if(prob(30))
-			add_objective(/datum/objective/pain_hunter)
-
-		else if(prob(20))
-			add_objective(/datum/objective/protect)
-
-		else
-			add_objective(/datum/objective/maroon)
-
-	else
-		add_objective(/datum/objective/steal)
-
-
-/**
  * Give traitors their uplink. Play the traitor an alert sound.
  */
 /datum/antagonist/traitor/finalize_antag()
@@ -226,14 +211,11 @@
 	if(!owner.current)
 		return
 
-	var/mob/traitor_mob = owner.current
-
 	var/phrases = jointext(GLOB.syndicate_code_phrase, ", ")
 	var/responses = jointext(GLOB.syndicate_code_response, ", ")
 
 	antag_memory += "<b>Code Phrase</b>: <span class='red'>[phrases]</span><br>"
 	antag_memory += "<b>Code Response</b>: <span class='red'>[responses]</span><br>"
-	traitor_mob.client.chatOutput?.notify_syndicate_codes()
 
 	var/list/messages = list()
 	if(!silent)

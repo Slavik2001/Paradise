@@ -165,6 +165,16 @@
 	build_path = /obj/item/reagent_scanner
 	category = list("Medical")
 
+/datum/design/upgraded_hypospray
+	name = "upgraded medical hypospray"
+	desc = "A device for identifying chemicals."
+	id = "upgraded_hypospray"
+	req_tech = list("plasmatech" = 4, "biotech" = 6, "materials" = 5)
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 1000, MAT_GLASS = 800, MAT_SILVER = 400, MAT_GOLD = 600)
+	build_path = /obj/item/reagent_containers/hypospray/safety/upgraded
+	category = list("Medical")
+
 /datum/design/item/scalpel_laser1
 	name = "Basic Laser Scalpel"
 	desc = "A scalpel augmented with a directed laser, for more precise cutting without blood entering the field. This one looks basic and could be improved."
@@ -199,11 +209,72 @@
 	name = "Incision Management System"
 	desc = "A true extension of the surgeon's body, this marvel instantly and completely prepares an incision allowing for the immediate commencement of therapeutic steps."
 	id = "scalpel_manager"
-	req_tech = list("biotech" = 4, "materials" = 7, "magnets" = 5, "programming" = 4)
+	req_tech = list("biotech" = 4, "materials" = 8, "magnets" = 5, "programming" = 4)
 	build_type = PROTOLATHE
 	materials = list(MAT_METAL = 2000, MAT_GLASS = 1500, MAT_SILVER = 1000, MAT_GOLD = 1000, MAT_DIAMOND = 1000)
 	build_path = /obj/item/scalpel/laser/manager
 	category = list("Medical")
+
+/datum/design/item/retractor_laser
+	name = "Advanced Laser Retractor"
+	desc = "A retractor with a laser tip. This one looks to be the pinnacle of precision energy a surgery tools!"
+	id = "retractor_laser"
+	req_tech = list("biotech" = 4, "materials" = 6, "magnets" = 5)
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 2000, MAT_GLASS = 1500, MAT_SILVER = 1000, MAT_GOLD = 1000)
+	build_path = /obj/item/retractor/laser
+	category = list("Medical")
+
+/datum/design/item/hemostat_laser
+	name = "Advanced Laser Hemostat"
+	desc = "A hemostat with a laser clamp. This one looks to be the pinnacle of precision energy a surgery tools!"
+	id = "hemostat_laser"
+	req_tech = list("biotech" = 4, "materials" = 6, "magnets" = 5)
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 2000, MAT_GLASS = 1500, MAT_SILVER = 1000, MAT_GOLD = 1000)
+	build_path = /obj/item/hemostat/laser
+	category = list("Medical")
+
+/datum/design/item/surgicaldrill_laser
+	name = "Advanced Laser Surgical Drill"
+	desc = "A surgery drill with a directed laser bit. This one looks to be the pinnacle of precision energy a surgery tools!"
+	id = "surgicaldrill_laser"
+	req_tech = list("biotech" = 4, "materials" = 6, "magnets" = 5)
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 2000, MAT_GLASS = 1500, MAT_SILVER = 1000, MAT_GOLD = 1000)
+	build_path = /obj/item/surgicaldrill/laser
+	category = list("Medical")
+
+/datum/design/item/circular_laser
+	name = "Advanced Laser Circular Saw"
+	desc = "A saw with a circular laser disk. This one looks to be the pinnacle of precision energy a surgery tools!"
+	id = "circular_laser"
+	req_tech = list("biotech" = 4, "materials" = 6, "magnets" = 5)
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 2000, MAT_GLASS = 1500, MAT_SILVER = 1000, MAT_GOLD = 1000)
+	build_path = /obj/item/circular_saw/laser
+	category = list("Medical")
+
+/datum/design/item/bonesetter_laser
+	name = "Advanced Laser Bonesetter"
+	desc = "A bone settler with a laser teeth. This one looks to be the pinnacle of precision energy a surgery tools!"
+	id = "bonesetter_laser"
+	req_tech = list("biotech" = 4, "materials" = 6, "magnets" = 5)
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 2000, MAT_GLASS = 1500, MAT_SILVER = 1000, MAT_GOLD = 1000)
+	build_path = /obj/item/bonesetter/laser
+	category = list("Medical")
+
+/datum/design/item/laserfullkit
+	name = "Advanced Surgery Kit"
+	desc = "Полный набор современных хирургических инструментов."
+	id = "laser_fullsurgerykit"
+	req_tech = list("biotech" = 4, "materials" = 6, "magnets" = 5)
+	build_path = /obj/item/storage/toolbox/surgery/advanced
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 13000, MAT_GLASS = 10000, MAT_SILVER = 6000, MAT_GOLD = 6000)
+	category = list("Medical")
+
 
 /datum/design/alienscalpel
 	name = "Alien Scalpel"
@@ -293,6 +364,16 @@
 	build_path = /obj/item/FixOVein/alien
 	build_type = PROTOLATHE
 	materials = list(MAT_METAL = 2000, MAT_SILVER = 1500, MAT_PLASMA = 500, MAT_TITANIUM = 1500)
+	category = list("Medical")
+
+/datum/design/alienfullkit
+	name = "Alien Surgery Kit"
+	desc = "Полный набор инопланетных хирургических инструментов."
+	id = "alien_fullsurgerykit"
+	req_tech = list("biotech" = 4, "materials" = 4, "abductor" = 3)
+	build_path = /obj/item/storage/toolbox/surgery/alien
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 34500, MAT_SILVER = 16000, MAT_PLASMA = 5500, MAT_TITANIUM = 13500)
 	category = list("Medical")
 
 /////////////////////////////////////////
@@ -429,6 +510,17 @@
 	construction_time = 50
 	materials = list(MAT_METAL = 600, MAT_GLASS = 600, MAT_SILVER = 500, MAT_GOLD = 500)
 	build_path = /obj/item/organ/internal/cyberimp/eyes/hud/medical
+	category = list("Medical")
+
+/datum/design/cyberimp_science_hud
+	name = "Science HUD implant"
+	desc = "These cybernetic eye implants with an analyzer for scanning items and reagents."
+	id = "ci-scihud"
+	req_tech = list("materials" = 5, "programming" = 4, "biotech" = 4)
+	build_type = PROTOLATHE | MECHFAB
+	construction_time = 50
+	materials = list(MAT_METAL = 600, MAT_GLASS = 600, MAT_SILVER = 500, MAT_GOLD = 500)
+	build_path = /obj/item/organ/internal/cyberimp/eyes/hud/science
 	category = list("Medical")
 
 /datum/design/cyberimp_security_hud
@@ -714,4 +806,24 @@
 	build_path = /obj/item/roller/holo
 	build_type = PROTOLATHE
 	materials = list(MAT_METAL = 1000, MAT_SILVER = 500, MAT_GLASS = 500, MAT_DIAMOND = 200)
+	category = list("Medical")
+
+/datum/design/modified_medical_gloves
+	name = "modified medical gloves"
+	desc = "They are very soft and light to the touch and do not hinder movement at all."
+	id = "modified_medical_gloves"
+	req_tech = list("magnets" = 7, "materials" = 7, "programming" = 5, "biotech" = 5)
+	build_path = /obj/item/clothing/gloves/color/latex/modified
+	build_type = PROTOLATHE
+	materials = list(MAT_METAL = 1000, MAT_SILVER = 800, MAT_GLASS = 800, MAT_DIAMOND = 600, MAT_GOLD = 400)
+	category = list("Medical")
+
+/datum/design/bbag
+	name = "bluespace bodybag"
+	desc = "A bluespace body bag designed for the storage and transportation of cadavers."
+	id = "bbag"
+	req_tech = null //only for roboquests
+	build_type = PROTOLATHE
+	materials = list(MAT_SILVER = 1200, MAT_GLASS = 800, MAT_DIAMOND = 1200, MAT_GOLD = 400, MAT_BLUESPACE = 2000)
+	build_path = /obj/item/bodybag/bluespace
 	category = list("Medical")

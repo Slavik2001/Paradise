@@ -7,7 +7,7 @@
 	if(!check_rights(R_ADMIN))
 		return
 
-	var/chosen = tgui_input_list(src, null, "Jump to...", choices)
+	var/chosen = tgui_input_list(src, "What to jump to?", "Jump to...", choices)
 	if(!chosen)
 		return
 
@@ -66,7 +66,6 @@
 
 /client/proc/jumptoturf(turf/T in world)
 	set name = "\[Admin\] Jump to Turf"
-	set category = null
 
 	if(!check_rights(R_ADMIN))
 		return
@@ -74,16 +73,18 @@
 	if(isobj(usr.loc))
 		var/obj/O = usr.loc
 		O.force_eject_occupant(usr)
+
 	log_admin("[key_name(usr)] jumped to [COORD(T)] in [T.loc]")
+
 	if(!isobserver(usr))
 		message_admins("[key_name_admin(usr)] jumped to [COORD(T)] in [T.loc]")
+		
 	admin_forcemove(usr, T)
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Jump To Turf") //If you are copy-pasting this, ensure the 4th parameter is unique to the new proc!
 	return
 
 /client/proc/jumptomob(mob/M)
 	set name = "\[Admin\] Jump to Mob"
-	set category = null
 	if(!M || !check_rights(R_ADMIN))
 		return
 
@@ -107,15 +108,20 @@
 		return
 
 	var/turf/T = locate(tx, ty, tz)
+
 	if(T)
 		if(isobj(usr.loc))
 			var/obj/O = usr.loc
 			O.force_eject_occupant(usr)
+
 		admin_forcemove(usr, T)
+
 		if(isobserver(usr))
 			var/mob/dead/observer/O = usr
 			O.ManualFollow(T)
+
 		SSblackbox.record_feedback("tally", "admin_verb", 1, "Jump To Coordinate") //If you are copy-pasting this, ensure the 4th parameter is unique to the new proc!
+
 	if(!isobserver(usr))
 		message_admins("[key_name_admin(usr)] jumped to coordinates [COORD(T)]")
 
@@ -134,7 +140,6 @@
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Jump To Key") //If you are copy-pasting this, ensure the 4th parameter is unique to the new proc!
 
 /client/proc/Getmob(mob/M in GLOB.mob_list)
-	set category = null
 	set name = "\[Admin\] Get Mob"
 	set desc = "Mob to teleport"
 
@@ -150,7 +155,6 @@
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Get Mob") //If you are copy-pasting this, ensure the 4th parameter is unique to the new proc!
 
 /client/proc/Getkey()
-	set category = null
 	set name = "Get Key"
 	set desc = "Key to teleport"
 

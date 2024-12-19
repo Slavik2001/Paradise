@@ -25,15 +25,20 @@
 	gold_core_spawnable = FRIENDLY_SPAWN
 	stop_automated_movement_when_pulled = 0
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	faction = list("slime", "neutral")
 	reagents = new()
 	holder_type = /obj/item/holder/snail
 
-/mob/living/simple_animal/snail/Process_Spacemove(movement_dir = NONE)
-	return TRUE
+/mob/living/simple_animal/hostile/snail/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
-/mob/living/simple_animal/snail/Move(atom/newloc, direct, movetime)
+/mob/living/simple_animal/snail/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE	// why???
+
+/mob/living/simple_animal/snail/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/oldLoc = src.loc
 	. = ..()
 	if(.)

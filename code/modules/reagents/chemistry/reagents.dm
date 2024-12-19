@@ -13,6 +13,8 @@
 	var/heart_rate_decrease = 0
 	var/heart_rate_stop = 0
 	var/penetrates_skin = FALSE //Whether or not a reagent penetrates the skin
+	/// Shows how the reagent penetrates the protection from clothing in TOUCH reactions. Should be [0-1]. 0 by default, 1 - full penetration.
+	var/clothing_penetration = 0
 	//Processing flags, defines the type of mobs the reagent will affect
 	//By default, all reagents will ONLY affect organics, not synthetics. Re-define in the reagent's definition if the reagent is meant to affect synths
 	var/process_flags = ORGANIC
@@ -49,12 +51,8 @@
 
 /datum/reagent/proc/reaction_mob(mob/living/M, method = REAGENT_TOUCH, volume, show_message = TRUE) //Some reagents transfer on touch, others don't; dependent on if they penetrate the skin or not.
 	if(holder)  //for catching rare runtimes
-		if(method == REAGENT_TOUCH && penetrates_skin)
-			var/block  = M.get_permeability_protection()
-			var/amount = round(volume * (1 - block), 0.1)
-			if(M.reagents)
-				if(amount >= 1)
-					M.reagents.add_reagent(id, amount)
+		if(method == REAGENT_TOUCH && penetrates_skin && M.reagents && volume >= 1)
+			M.reagents.add_reagent(id, volume)
 
 		if(method == REAGENT_INGEST) //Yes, even Xenos can get addicted to drugs.
 			var/can_become_addicted = M.reagents.reaction_check(M, src)
@@ -198,6 +196,9 @@
 	return list(effect, update_flags)
 
 /datum/reagent/proc/overdose_start(mob/living/M)
+	return
+
+/datum/reagent/proc/overdose_end(mob/living/M)
 	return
 
 /datum/reagent/proc/addiction_act_stage1(mob/living/M)

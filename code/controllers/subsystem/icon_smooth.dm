@@ -7,11 +7,18 @@ SUBSYSTEM_DEF(icon_smooth)
 	offline_implications = "Objects will no longer smooth together properly. No immediate action is needed."
 	cpu_display = SS_CPUDISPLAY_LOW
 	ss_id = "icon_smooth"
-
+	/**
+	 *	Used to track instances of icon smooth halters. Does not apply to roundstart loading, however.
+	 *  Always make sure to remove halt source from this list on the end of operation.
+	 */
+	var/halt_sources = list()
 	var/list/smooth_queue = list()
 
 
 /datum/controller/subsystem/icon_smooth/fire()
+	if(length(halt_sources))
+		return
+
 	while(smooth_queue.len)
 		var/atom/A = smooth_queue[smooth_queue.len]
 		smooth_queue.len--
@@ -20,7 +27,6 @@ SUBSYSTEM_DEF(icon_smooth)
 			return
 	if(!smooth_queue.len)
 		can_fire = 0
-
 
 /datum/controller/subsystem/icon_smooth/Initialize()
 	log_startup_progress("Smoothing atoms...")
@@ -44,3 +50,10 @@ SUBSYSTEM_DEF(icon_smooth)
 		smooth_icon(A)
 		CHECK_TICK
 
+	return SS_INIT_SUCCESS
+
+/datum/controller/subsystem/icon_smooth/proc/add_halt_source(datum/source)
+	halt_sources += source
+
+/datum/controller/subsystem/icon_smooth/proc/remove_halt_source(datum/source)
+	halt_sources -= source

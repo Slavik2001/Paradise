@@ -3,14 +3,13 @@
 //this item is intended to give the effect of entering the mine, so that light gradually fades
 /obj/effect/light_emitter
 	name = "Light emitter"
+	icon_state = "at_shield1"
 	anchored = TRUE
 	invisibility = INVISIBILITY_ABSTRACT
-	var/set_luminosity = 8
-	var/set_cap = 0
 
 /obj/effect/light_emitter/Initialize(mapload)
 	. = ..()
-	set_light(set_luminosity, set_cap)
+	icon_state = null
 
 /obj/effect/light_emitter/singularity_pull()
 	return
@@ -22,8 +21,7 @@
 
 /obj/structure/closet/wardrobe/miner
 	name = "mining wardrobe"
-	icon_state = "closed"
-	custom_door_overlay = "mixed"
+	icon_state = "mine_ward"
 
 /obj/structure/closet/wardrobe/miner/populate_contents()
 	new /obj/item/storage/backpack/duffel(src)
@@ -62,7 +60,7 @@
 
 /obj/machinery/computer/shuttle/mining
 	name = "Mining Shuttle Console"
-	desc = "Used to call and send the mining shuttle."
+	desc = "Используется для вызова и отправки шахтёрского шаттла."
 	circuit = /obj/item/circuitboard/mining_shuttle
 	shuttleId = "mining"
 	possible_destinations = "mining_home;mining_away"

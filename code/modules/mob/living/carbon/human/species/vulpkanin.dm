@@ -15,7 +15,10 @@
 	to the degree it can cause conflict with more rigorous and strict authorities. They speak a guttural language known as 'Canilunzt' \
     which has a heavy emphasis on utilizing tail positioning and ear twitches to communicate intent."
 
-	species_traits = list(LIPS, HAVE_REGENERATION)
+	inherent_traits = list(
+		TRAIT_HAS_LIPS,
+		TRAIT_HAS_REGENERATION,
+	)
 	clothing_flags = HAS_UNDERWEAR | HAS_UNDERSHIRT | HAS_SOCKS
 	bodyflags = HAS_TAIL | TAIL_WAGGING | TAIL_OVERLAPPED | HAS_HEAD_ACCESSORY | HAS_MARKINGS | HAS_SKIN_COLOR
 	taste_sensitivity = TASTE_SENSITIVITY_SHARP
@@ -68,19 +71,26 @@
 	disliked_food = VEGETABLES | FRUIT | GRAIN
 	liked_food = MEAT | RAW | DAIRY | GROSS | EGG
 
+	age_sheet = list(
+		SPECIES_AGE_MIN = 18,
+		SPECIES_AGE_MAX = 80,
+		JOB_MIN_AGE_HIGH_ED = 30,
+		JOB_MIN_AGE_COMMAND = 30,
+	)
+
 /datum/species/vulpkanin/handle_death(gibbed, mob/living/carbon/human/H)
 	H.stop_tail_wagging()
 
 /datum/species/vulpkanin/on_species_gain(mob/living/carbon/human/H)
-	..()
-	H.verbs |= /mob/living/carbon/human/proc/emote_wag
-	H.verbs |= /mob/living/carbon/human/proc/emote_swag
-	H.verbs |= /mob/living/carbon/human/proc/emote_howl
-	H.verbs |= /mob/living/carbon/human/proc/emote_growl
+	. = ..()
+	add_verb(H, /mob/living/carbon/human/proc/emote_wag)
+	add_verb(H, /mob/living/carbon/human/proc/emote_swag)
+	add_verb(H, /mob/living/carbon/human/proc/emote_howl)
+	add_verb(H, /mob/living/carbon/human/proc/emote_growl)
 
 /datum/species/vulpkanin/on_species_loss(mob/living/carbon/human/H)
-	..()
-	H.verbs -= /mob/living/carbon/human/proc/emote_wag
-	H.verbs -= /mob/living/carbon/human/proc/emote_swag
-	H.verbs -= /mob/living/carbon/human/proc/emote_howl
-	H.verbs -= /mob/living/carbon/human/proc/emote_growl
+	. = ..()
+	remove_verb(H, /mob/living/carbon/human/proc/emote_wag)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_swag)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_howl)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_growl)

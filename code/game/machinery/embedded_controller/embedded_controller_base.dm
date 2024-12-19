@@ -7,6 +7,8 @@
 	use_power = IDLE_POWER_USE
 	idle_power_usage = 10
 
+	layer = BUTTONS_LAYER
+
 	var/on = 1
 
 /obj/machinery/embedded_controller/proc/post_signal(datum/signal/signal, comm_line)
@@ -52,7 +54,7 @@
 	resistance_flags = FIRE_PROOF | ACID_PROOF
 
 /obj/machinery/embedded_controller/radio/Initialize()
-	..()
+	. = ..()
 	set_frequency(frequency)
 
 /obj/machinery/embedded_controller/radio/Destroy()

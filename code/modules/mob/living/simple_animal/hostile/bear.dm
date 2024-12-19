@@ -36,10 +36,16 @@
 
 	//Space bears aren't affected by atmos.
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 
 	faction = list("russian")
 	gold_core_spawnable = HOSTILE_SPAWN
+	weather_immunities = list(TRAIT_SNOWSTORM_IMMUNE)
+
+/mob/living/simple_animal/hostile/bear/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/bear/handle_automated_movement()
 	if(..())
@@ -55,7 +61,7 @@
 	var/unbearable_pun = pick("He's unbearably cute.", "It looks like he is a bearer of bad news.", "Sadly, he is bearly able to comprehend puns.")
 	desc = "That's Hudson. " +  unbearable_pun// I am not sorry for this.
 
-/mob/living/simple_animal/hostile/bear/Move()
+/mob/living/simple_animal/hostile/bear/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(stat != DEAD)
 		if(loc && isspaceturf(loc))
@@ -63,7 +69,7 @@
 		else
 			icon_state = "[icon_living]floor"
 
-/mob/living/simple_animal/hostile/bear/Process_Spacemove(movement_dir = NONE)
+/mob/living/simple_animal/hostile/bear/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE	//No drifting in space for space bears!
 
 /mob/living/simple_animal/hostile/bear/brown

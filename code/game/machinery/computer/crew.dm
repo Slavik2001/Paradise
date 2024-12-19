@@ -1,6 +1,6 @@
 /obj/machinery/computer/crew
 	name = "crew monitoring computer"
-	desc = "Used to monitor active health sensors built into most of the crew's uniforms."
+	desc = "Используется для контроля активных датчиков состояния здоровья, встроенных в униформу большинства членов экипажа."
 	icon_keyboard = "med_key"
 	icon_screen = "crew"
 	use_power = IDLE_POWER_USE
@@ -31,8 +31,8 @@
 	add_fingerprint(user)
 	ui_interact(user)
 
-/obj/machinery/computer/crew/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	crew_monitor.ui_interact(user, ui_key, ui, force_open)
+/obj/machinery/computer/crew/ui_interact(mob/user, datum/tgui/ui = null)
+	crew_monitor.ui_interact(user, ui)
 
 /obj/machinery/computer/crew/interact(mob/user)
 	crew_monitor.ui_interact(user)

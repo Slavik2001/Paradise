@@ -27,8 +27,10 @@
 	layer = TURF_LAYER
 	icon = 'icons/effects/dirt.dmi'
 	icon_state = "dirt"
-	canSmoothWith = list(/obj/effect/decal/cleanable/dirt, /turf/simulated/wall, /obj/structure/falsewall)
-	smooth = SMOOTH_MORE
+	base_icon_state = "dirt"
+	smoothing_groups = SMOOTH_GROUP_CLEANABLE_DIRT
+	canSmoothWith = SMOOTH_GROUP_CLEANABLE_DIRT + SMOOTH_GROUP_WALLS
+	smooth = SMOOTH_BITMASK
 	mouse_opacity = FALSE
 
 /obj/effect/decal/cleanable/dirt/Initialize(mapload)
@@ -255,3 +257,32 @@
 
 /obj/effect/decal/cleanable/glass/plasma
 	icon_state = "plasmatiny"
+
+/obj/effect/decal/cleanable/ashrune
+	name = "Ash rune"
+	desc = "A rune drawn in ash."
+	icon = 'icons/effects/ashwalker_rune.dmi'
+	icon_state = "AshRuneSmall"
+	anchored = TRUE
+	mergeable_decal = FALSE
+	mouse_opacity = MOUSE_OPACITY_ICON
+
+/obj/effect/decal/cleanable/ashrune/Initialize(mapload)
+	. = ..()
+
+	update_icon(UPDATE_ICON_STATE)
+
+	pixel_x = -32
+	pixel_y = -32
+
+/obj/effect/decal/cleanable/ashrune/update_icon_state()
+	icon_state = "AshRuneFilled"
+
+/obj/effect/decal/cleanable/ashrune/ComponentInitialize()
+	AddComponent( \
+		/datum/component/ritual_object, \
+		/datum/ritual/ashwalker, \
+	)
+
+/obj/effect/decal/cleanable/ashrune/is_cleanable()
+	return FALSE

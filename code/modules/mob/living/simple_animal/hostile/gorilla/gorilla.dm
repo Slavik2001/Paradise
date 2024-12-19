@@ -24,8 +24,6 @@
 	attack_sound = 'sound/weapons/punch1.ogg'
 	faction = list("hostile", "monkey", "jungle")
 	robust_searching = TRUE
-	minbodytemp = 270
-	maxbodytemp = 350
 	nightvision = 8
 	can_collar = TRUE
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
@@ -33,6 +31,7 @@
 	stat_attack = UNCONSCIOUS // Sleeping won't save you
 	a_intent = INTENT_HARM // Angrilla
 	tts_seed = "Mannoroth"
+	AI_delay_max = 0.5 SECONDS
 	/// Is the gorilla stood up or not?
 	var/is_bipedal = FALSE
 	/// The max number of crates we can carry
@@ -58,6 +57,12 @@
 	var/static/default_cache = typecacheof(list(/obj/structure/closet/crate))	// Normal crates only please, no weird sized ones
 	carriable_cache = default_cache
 
+/mob/living/simple_animal/hostile/gorilla/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = 350, \
+		minbodytemp = 270, \
+	)
 
 /mob/living/simple_animal/hostile/gorilla/Destroy()
 	reset_behavior(play_emote = FALSE)
@@ -213,7 +218,7 @@
 
 /mob/living/simple_animal/hostile/gorilla/CanAttack(atom/the_target)
 	var/list/parts = get_target_bodyparts(target)
-	return ..() && !ismonkeybasic(the_target) && (!parts || length(parts) > 3)
+	return ..() && !is_monkeybasic(the_target) && (!parts || length(parts) > 3)
 
 
 /mob/living/simple_animal/hostile/gorilla/CanSmashTurfs(turf/T)

@@ -109,11 +109,7 @@
 			active_conversation = null
 
 /datum/data/pda/app/messenger/proc/create_message(var/mob/living/U, var/obj/item/pda/P)
-	var/t = input(U, "Please enter message", name, null) as text|null
-	if(!t)
-		return
-	t = sanitize(copytext_char(t, 1, MAX_MESSAGE_LEN))
-	t = readd_quotes(t)
+	var/t = tgui_input_text(U, "Please enter your message", name)
 	if(!t || !istype(P))
 		return
 	if(!in_range(pda, U) && pda.loc != U)
@@ -133,14 +129,7 @@
 	last_text = world.time
 	// check if telecomms I/O route 1459 is stable
 	//var/telecomms_intact = telecomms_process(P.owner, owner, t)
-	var/obj/machinery/message_server/useMS = null
-	if(GLOB.message_servers)
-		for(var/A in GLOB.message_servers)
-			var/obj/machinery/message_server/MS = A
-		//PDAs are now dependent on the Message Server.
-			if(MS.active)
-				useMS = MS
-				break
+	var/obj/machinery/message_server/useMS = find_pda_server()
 
 	var/turf/sender_pos = get_turf(U)
 	var/turf/recipient_pos = get_turf(P)
@@ -186,8 +175,8 @@
 			PM.conversations.Add("[pda.UID()]")
 
 		SStgui.update_uis(src)
-		PM.notify("<b>Message from [pda.owner] ([pda.ownjob]), </b>\"[t]\" (<a href='?src=[PM.UID()];choice=Message;target=[pda.UID()]'>Reply</a>)")
-		to_chat(U, "[bicon(pda)] <b>Message to [P.owner] ([P.ownjob]), </b>\"[t]\" (<a href='?src=[UID()];choice=Message;target=[P.UID()]'>Send more</a>)")
+		PM.notify("<b>Message from [pda.owner] ([pda.ownjob]), </b>\"[t]\" (<a href='byond://?src=[PM.UID()];choice=Message;target=[pda.UID()]'>Reply</a>)")
+		to_chat(U, "[bicon(pda)] <b>Message to [P.owner] ([P.ownjob]), </b>\"[t]\" (<a href='byond://?src=[UID()];choice=Message;target=[P.UID()]'>Send more</a>)")
 		log_pda("(PDA: [src.name]) sent \"[t]\" to [P.name]", U)
 		var/log_message = "sent PDA message \"[t]\" using [pda]"
 		var/receiver

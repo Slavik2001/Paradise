@@ -3,7 +3,15 @@
 
 /mob/living/simple_animal/bot/ed209
 	name = "\improper ED-209 Security Robot"
-	desc = "A security robot.  He looks less than thrilled."
+	desc = "Охранный робот. Он выглядит абсолютно спокойным."
+	ru_names = list(
+		NOMINATIVE = "охранный робот ED-209",
+		GENITIVE = "охранного робота ED-209",
+		DATIVE = "охранному роботу ED-209",
+		ACCUSATIVE = "охранного робота ED-209",
+		INSTRUMENTAL = "охранным роботом ED-209",
+		PREPOSITIONAL = "охранном роботе ED-209",
+	)
 	icon = 'icons/obj/aibots.dmi'
 	icon_state = "ed2090"
 	density = TRUE
@@ -19,10 +27,10 @@
 	bot_type = SEC_BOT
 	bot_filter = RADIO_SECBOT
 	model = "ED-209"
-	bot_purpose = "seek out criminals, handcuff them, and report their location to security"
+	bot_purpose = "найти преступников, задержать их и доложить службе безопасности"
 	bot_core_type = /obj/machinery/bot_core/secbot
 	window_id = "autoed209"
-	window_name = "Automatic Security Unit v2.6"
+	window_name = "Автоматическая Охранная Единица v2.6"
 	path_image_color = "#FF0000"
 	data_hud_type = DATA_HUD_SECURITY_ADVANCED
 
@@ -58,8 +66,9 @@
 	var/baton_delayed = FALSE
 	var/speak_cooldown = FALSE
 
-/mob/living/simple_animal/bot/ed209/New(loc, created_name, created_lasercolor)
-	..()
+
+/mob/living/simple_animal/bot/ed209/Initialize(mapload, created_name, created_lasercolor)
+	. = ..()
 	if(created_name)
 		name = created_name
 	if(created_lasercolor)
@@ -79,9 +88,9 @@
 
 		if(created_name == initial(name) || !created_name)
 			if(lasercolor == "b")
-				name = pick("BLUE BALLER","SANIC","BLUE KILLDEATH MURDERBOT")
+				name = pick("СИНИЙ УБИВАТОР","САНИК","СИНИЙ КИБОРГ УБИЙЦА")
 			else if (lasercolor == "r")
-				name = pick("RED RAMPAGE","RED ROVER","RED KILLDEATH MURDERBOT")
+				name = pick("КРАСНОЕ БЕЗУМИЕ","КРАСНЫЙ УНИЧТОЖИТЕЛЬ","КРАСНЫЙ КИБОРГ УБИЙЦА")
 
 	//SECHUD
 	var/datum/atom_hud/secsensor = GLOB.huds[DATA_HUD_SECURITY_ADVANCED]
@@ -111,26 +120,26 @@
 	target = null
 	oldtarget_name = null
 	set_anchored(FALSE)
-	walk_to(src,0)
+	SSmove_manager.stop_looping(src)
 	set_path(null)
 	last_found = world.time
 	set_weapon()
 
 
 /mob/living/simple_animal/bot/ed209/set_custom_texts()
-	text_hack = "You disable [name]'s combat inhibitor."
-	text_dehack = "You restore [name]'s combat inhibitor."
-	text_dehack_fail = "[name] ignores your attempts to restrict [p_them()]!"
+	text_hack = "Вы взломали боевую систему [declent_ru(GENITIVE)]"
+	text_dehack = "Вы восстановили боевую систему [declent_ru(GENITIVE)]."
+	text_dehack_fail = "[capitalize(declent_ru(NOMINATIVE))] отказывается вам подчиняться!"
 
 
 /mob/living/simple_animal/bot/ed209/show_controls(mob/M)
 	ui_interact(M)
 
 
-/mob/living/simple_animal/bot/ed209/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/mob/living/simple_animal/bot/ed209/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "BotSecurity", name, 500, 500)
+		ui = new(user, src, "BotSecurity", name)
 		ui.open()
 
 
@@ -158,7 +167,7 @@
 	if (..())
 		return
 	if(topic_denied(usr))
-		to_chat(usr, "<span class='warning'>[src]'s interface is not responding!</span>")
+		to_chat(usr, span_warning("Интерфейс [declent_ru(GENITIVE)] не отвечает!"))
 		return
 	add_fingerprint(usr)
 	. = TRUE
@@ -213,24 +222,23 @@
 	return ..()
 
 
-/mob/living/simple_animal/bot/ed209/attackby(obj/item/W, mob/user, params)
-	..()
-	if(istype(W, /obj/item/weldingtool) && user.a_intent != INTENT_HARM) // Any intent but harm will heal, so we shouldn't get angry.
-		return
-	if(!isscrewdriver(W) && !locked && !target) //If the target is locked, they are recieving damage from the screwdriver
-		if(W.force && W.damtype != STAMINA)//If force is non-zero and damage type isn't stamina.
-			retaliate(user)
-			if(lasercolor)//To make up for the fact that lasertag bots don't hunt
-				shootAt(user)
+/mob/living/simple_animal/bot/ed209/attackby(obj/item/I, mob/user, params)
+	var/current_health = health
+	. = ..()
+	if(ATTACK_CHAIN_CANCEL_CHECK(.) || health >= current_health)
+		return .
+	retaliate(user)
+	if(lasercolor)//To make up for the fact that lasertag bots don't hunt
+		shootAt(user)
 
 
 /mob/living/simple_animal/bot/ed209/emag_act(mob/user)
 	..()
 	if(emagged == 2)
 		if(user)
-			to_chat(user, span_warning("You short out [src]'s target assessment circuits."))
+			to_chat(user, span_warning("Вы замыкаете микросхемы системы целеуказания [declent_ru(GENITIVE)]."))
 			oldtarget_name = user.name
-		audible_message(span_danger("[src] buzzes oddly!"))
+		audible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] странно жужжит!"))
 		declare_arrests = FALSE
 		icon_state = "[lasercolor]ed209[on]"
 		set_weapon()
@@ -279,7 +287,7 @@
 	switch(mode)
 
 		if(BOT_IDLE)		// idle
-			walk_to(src,0)
+			SSmove_manager.stop_looping(src)
 			set_path(null)
 			if(!lasercolor) //lasertag bots don't want to arrest anyone
 				look_for_perp()	// see if any criminals are in range
@@ -289,7 +297,7 @@
 		if(BOT_HUNT)		// hunting for perp
 			// if can't reach perp for long enough, go idle
 			if(frustration >= 8)
-				walk_to(src,0)
+				SSmove_manager.stop_looping(src)
 				set_path(null)
 				back_to_idle()
 
@@ -309,8 +317,7 @@
 
 				else if(!disabled) // not next to perp
 					var/turf/olddist = get_dist(src, target)
-					glide_for(BOT_STEP_DELAY)
-					walk_to(src, target,1,4)
+					SSmove_manager.move_to(src, target, 1, BOT_STEP_DELAY)
 					if((get_dist(src, target)) >= (olddist))
 						frustration++
 					else
@@ -403,9 +410,9 @@
 		else if(threatlevel >= 4)
 			target = C
 			oldtarget_name = C.name
-			speak("Level [threatlevel] infraction alert!")
+			speak("Вижу преступника! Уровень опасности - <b>[threatlevel]</b>!")
 			playsound(loc, pick('sound/voice/ed209_20sec.ogg', 'sound/voice/edplaceholder.ogg'), 50, 0)
-			visible_message("<b>[src]</b> points at [C.name]!")
+			visible_message("<b>[capitalize(declent_ru(NOMINATIVE))]</b> указывает на [C.name]!")
 			mode = BOT_HUNT
 			INVOKE_ASYNC(src, PROC_REF(handle_automated_action))
 			break
@@ -420,8 +427,8 @@
 
 
 /mob/living/simple_animal/bot/ed209/explode()
-	walk_to(src,0)
-	visible_message("<span class='userdanger'>[src] blows apart!</span>")
+	SSmove_manager.stop_looping(src)
+	visible_message(span_userdanger("[capitalize(declent_ru(NOMINATIVE))] разлетается на части!"))
 	var/turf/Tsec = get_turf(src)
 
 	var/obj/item/ed209_assembly/Sa = new /obj/item/ed209_assembly(Tsec)
@@ -563,7 +570,7 @@
 		if(lasertag_check)
 			icon_state = "[lasercolor]ed2090"
 			disabled = TRUE
-			walk_to(src, 0)
+			SSmove_manager.stop_looping(src)
 			target = null
 			addtimer(CALLBACK(src, PROC_REF(unset_disabled)), 10 SECONDS)
 			return TRUE
@@ -623,26 +630,26 @@
 	var/threat = C.assess_threat(src)
 	C.SetStuttering(10 SECONDS)
 	C.Weaken(4 SECONDS)
-	C.adjustStaminaLoss(45)
+	C.apply_damage(45, STAMINA)
 	baton_delayed = TRUE
 	addtimer(VARSET_CALLBACK(src, baton_delayed, FALSE), BATON_COOLDOWN)
 	add_attack_logs(src, C, "stunned")
 	if(declare_arrests)
 		var/area/location = get_area(src)
 		if(!speak_cooldown)
-			speak("[arrest_type ? "Detaining" : "Arresting"] level [threat] scumbag <b>[C]</b> in [location].", radio_channel)
+			speak("[arrest_type ? "Удерживаю" : "Задерживаю"] подонка по имени <b>[C]</b> в локации <b>[location]</b>. Уровень опасности - [threat].", radio_channel)
 			speak_cooldown = TRUE
 			addtimer(VARSET_CALLBACK(src, speak_cooldown, FALSE), SPEAK_COOLDOWN)
-	C.visible_message(span_danger("[src] has stunned [C]!"),
-					span_userdanger("[src] has stunned you!"))
+	C.visible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] оглушил [C]!"),
+					span_userdanger("[capitalize(declent_ru(NOMINATIVE))] оглушил вас!"))
 
 
 
 /mob/living/simple_animal/bot/ed209/proc/start_cuffing(mob/living/carbon/C)
 	mode = BOT_ARREST
 	playsound(loc, 'sound/weapons/cablecuff.ogg', 30, 1, -2)
-	C.visible_message(span_danger("[src] is trying to put zipties on [C]!"),
-					span_userdanger("[src] is trying to put zipties on you!"))
+	C.visible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] начинает надевать стяжки на [C]!"),
+					span_userdanger("[capitalize(declent_ru(NOMINATIVE))] пытается надеть на вас стяжки!"))
 	addtimer(CALLBACK(src, PROC_REF(cuff_callback), C), 6 SECONDS)
 
 
@@ -654,6 +661,9 @@
 		return
 
 	C.apply_restraints(new /obj/item/restraints/handcuffs/cable/zipties/used(null), ITEM_SLOT_HANDCUFFED, TRUE)
+	C.visible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] надел стяжки на [C]!"),
+					span_userdanger("[capitalize(declent_ru(NOMINATIVE))] надел на вас стяжки!"))
+
 	back_to_idle()
 
 

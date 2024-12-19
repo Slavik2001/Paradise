@@ -15,7 +15,6 @@
 	see_invisible = SEE_INVISIBLE_HIDDEN_RUNES
 	attack_sound = 'sound/weapons/punch1.ogg'
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	faction = list("cult")
 	pressure_resistance = 100
 	universal_speak = TRUE
@@ -48,12 +47,18 @@
 	for(var/spell in construct_spells)
 		AddSpell(new spell(null))
 
-	set_light(2, 3, l_color = SSticker.cultdat ? SSticker.cultdat.construct_glow : LIGHT_COLOR_BLOOD_MAGIC)
+	set_light_range_power_color(2, 3, SSticker.cultdat ? SSticker.cultdat.construct_glow : LIGHT_COLOR_BLOOD_MAGIC)
 
 /mob/living/simple_animal/hostile/construct/Initialize(mapload)
 	. = ..()
 	add_traits(list(TRAIT_HEALS_FROM_CULT_PYLONS, TRAIT_HEALS_FROM_HOLY_PYLONS, TRAIT_NO_FLOATING_ANIM), INNATE_TRAIT)
 	AddElement(/datum/element/simple_flying)
+
+/mob/living/simple_animal/hostile/construct/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 223, \
+	)
 
 /mob/living/simple_animal/hostile/construct/death(gibbed)
 	. = ..()
@@ -90,7 +95,7 @@
 /mob/living/simple_animal/hostile/construct/narsie_act()
 	return
 
-/mob/living/simple_animal/hostile/construct/electrocute_act(shock_damage, obj/source, siemens_coeff = 1, safety = FALSE, override = FALSE, tesla_shock = FALSE, illusion = FALSE, stun = TRUE)
+/mob/living/simple_animal/hostile/construct/electrocute_act(shock_damage, source, siemens_coeff = 1, flags = NONE, jitter_time = 10 SECONDS, stutter_time = 6 SECONDS, stun_duration = 4 SECONDS)
 	return FALSE
 
 /////////////////Juggernaut///////////////
@@ -338,7 +343,7 @@
 						Bring those who still cling to this world of illusion back to the master so they may know Truth.</B>"
 
 
-/mob/living/simple_animal/hostile/construct/harvester/Process_Spacemove(movement_dir = NONE)
+/mob/living/simple_animal/hostile/construct/harvester/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE
 
 

@@ -24,6 +24,7 @@
 #define STATUS_EFFECT_SHADOW_MEND /datum/status_effect/shadow_mend //Quick, powerful heal that deals damage afterwards. Heals 15 brute/burn every second for 3 seconds.
 #define STATUS_EFFECT_VOID_PRICE /datum/status_effect/void_price //The price of healing yourself with void energy. Deals 3 brute damage every 3 seconds for 30 seconds.
 #define STATUS_EFFECT_EXERCISED /datum/status_effect/exercised //Prevents heart disease
+#define STATUS_EFFECT_SHADOW_EMPOWER /datum/status_effect/shadow_empower // used in shadowpeople species, grants stronger heal effect
 
 #define STATUS_EFFECT_HIPPOCRATIC_OATH /datum/status_effect/hippocraticOath //Gives you an aura of healing as well as regrowing the Rod of Asclepius if lost
 
@@ -93,6 +94,8 @@
 
 #define STATUS_EFFECT_CRUSHERMARK /datum/status_effect/crusher_mark //if struck with a proto-kinetic crusher, takes a ton of damage
 
+#define STATUS_EFFECT_FANG_EXHAUSTION /datum/status_effect/fang_exhaust // called by poison fang (crusher trophy)
+
 #define STATUS_EFFECT_SAWBLEED /datum/status_effect/saw_bleed //if the bleed builds up enough, takes a ton of damage
 
 #define STATUS_EFFECT_BLOODLETTING /datum/status_effect/saw_bleed/bloodletting //nerfed version
@@ -113,6 +116,8 @@
 
 #define STATUS_EFFECT_DASH /datum/status_effect/dash // Grants the ability to dash, expiring after a few seconds
 
+#define STATUS_EFFECT_VOMIT /datum/status_effect/tox_vomit // When carbon got enough tox damage - he will vomit.
+
 //#define STATUS_EFFECT_NECROPOLIS_CURSE /datum/status_effect/necropolis_curse
 //#define CURSE_BLINDING	1 //makes the edges of the target's screen obscured
 //#define CURSE_SPAWNING	2 //spawns creatures that attack the target only
@@ -125,9 +130,6 @@
 
 /// Whether a moth's wings are burnt
 #define STATUS_EFFECT_BURNT_WINGS /datum/status_effect/burnt_wings
-
-/// If a moth is in a cocoon
-#define STATUS_EFFECT_COCOONED /datum/status_effect/cocooned
 
 //human status effects
 // incapacitating
@@ -184,3 +186,5 @@
 #define STATUS_EFFECT_OFFERING_ITEM /datum/status_effect/offering_item
 
 #define STATUS_EFFECT_STARING /datum/status_effect/staring //Used in ../human/examine() proc
+
+#define STATUS_EFFECT_RECENTLY_SUCCUMBED /datum/status_effect/recently_succumbed

@@ -99,11 +99,7 @@ Made by Xhuis
 		shadow.restricted_roles = restricted_jobs
 		shadowlings--
 
-	var/thrall_scaling = round(num_players() / 3)
-	required_thralls = clamp(thrall_scaling, 15, 25)
-	thrall_ratio = required_thralls / 15
-
-	warning_threshold = round(0.66 * required_thralls)
+	recount_required_thralls()
 
 	..()
 	return 1
@@ -129,7 +125,7 @@ Made by Xhuis
 	messages.Add("<b>Currently, you are disguised as an employee aboard [station_name()].</b>")
 	messages.Add("<b>In your limited state, you have two abilities: Hatch and Shadowling Hivemind '[get_language_prefix(LANGUAGE_HIVE_SHADOWLING)]'.</b>")
 	messages.Add("<b>Any other shadowlings are your allies. You must assist them as they shall assist you.</b>")
-	messages.Add("<b>С полной информацией вы можете ознакомиться на вики: <a href=\"https://wiki.ss220.space/index.php/Shadowling\">Тенеморф</a></b><br>")
+	messages.Add("<b>С полной информацией вы можете ознакомиться на вики: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/Shadowling\">Тенеморф</a></b><br>")
 	return messages
 
 
@@ -151,7 +147,8 @@ Made by Xhuis
 		update_shadow_icons_added(shadow_mind)
 		if(shadow_mind.assigned_role == JOB_TITLE_CLOWN)
 			to_chat(S, "<span class='notice'>Your alien nature has allowed you to overcome your clownishness.</span>")
-			S.mutations.Remove(CLUMSY)
+			S.force_gene_block(GLOB.clumsyblock, FALSE)
+
 
 /datum/game_mode/proc/add_thrall(datum/mind/new_thrall_mind)
 	if(!istype(new_thrall_mind))
@@ -339,3 +336,10 @@ Made by Xhuis
 	var/datum/atom_hud/antag/shadow_hud = GLOB.huds[ANTAG_HUD_SHADOW]
 	shadow_hud.leave_hud(shadow_mind.current)
 	set_antag_hud(shadow_mind.current, null)
+
+
+/datum/game_mode/proc/recount_required_thralls()
+	var/thrall_scaling = round(num_players() / 3)
+	required_thralls = clamp(thrall_scaling, 15, 25)
+	thrall_ratio = required_thralls / 15
+	warning_threshold = round(0.66 * required_thralls)

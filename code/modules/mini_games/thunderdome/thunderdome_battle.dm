@@ -9,7 +9,7 @@
 #define MAX_PLAYERS_COUNT 	16
 #define MIN_PLAYERS_COUNT 	2
 #define SPAWN_COEFFICENT	0.85 //how many (polled * spawn_coefficent) players will go brawling
-#define PICK_PENALTY		30 SECONDS //Prevents fast handed guys from picking polls twice in a row.
+#define PICK_PENALTY		10 SECONDS //Prevents fast handed guys from picking polls twice in a row.
 // Uncomment this if you want to mess up with thunderdome alone
 /*
 #define THUND_TESTING
@@ -106,7 +106,7 @@ GLOBAL_VAR_INIT(tdome_arena_melee, locate(/area/tdome/newtdome/CQC))
 		for(var/obj/machinery/door/poddoor/M in GLOB.airlocks)
 			if(M.id_tag != "TD_CloseCombat")
 				continue
-			M.do_animate("closing")
+			INVOKE_ASYNC(M, TYPE_PROC_REF(/obj/machinery/door, do_animate), "closing")
 			M.set_density(TRUE)
 			M.set_opacity(TRUE)
 			M.layer = M.closingLayer
@@ -117,7 +117,7 @@ GLOBAL_VAR_INIT(tdome_arena_melee, locate(/area/tdome/newtdome/CQC))
 			if(M.id_tag != "TD_CloseCombat")
 				continue
 			if(M.density)
-				M.do_animate("opening")
+				INVOKE_ASYNC(M, TYPE_PROC_REF(/obj/machinery/door, do_animate), "opening")
 				M.set_density(FALSE)
 				M.set_opacity(FALSE)
 				M.update_icon()

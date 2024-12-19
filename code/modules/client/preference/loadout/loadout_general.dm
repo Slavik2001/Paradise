@@ -32,6 +32,17 @@
 	display_name = "a cheap lighter"
 	path = /obj/item/lighter
 
+/datum/gear/earrings
+	display_name = "earrings, select"
+	path = /obj/item/clothing/ears/earrings
+
+/datum/gear/earrings/New()
+	..()
+	var/list/earrings = list("silver" = /obj/item/clothing/ears/earrings/silver,
+								 "gold" = /obj/item/clothing/ears/earrings
+								 )
+	gear_tweaks += new /datum/gear_tweak/path(earrings, src)
+
 /datum/gear/matches
 	display_name = "a box of matches"
 	path = /obj/item/storage/box/matches
@@ -119,11 +130,6 @@
 							)
 	gear_tweaks += new /datum/gear_tweak/path(bands, src)
 
-/datum/gear/mob_hunt_game
-	display_name = "Nano-Mob Hunter GO! Cartridge"
-	path = /obj/item/cartridge/mob_hunt_game
-	cost = 2
-
 /datum/gear/piano_synth
 	display_name ="synthesizer"
 	path = /obj/item/instrument/piano_synth
@@ -132,10 +138,6 @@
 /datum/gear/tts
 	display_name ="TTS device"
 	path = /obj/item/ttsdevice
-
-/datum/gear/blindfold
-	display_name ="Blindfold"
-	path = /obj/item/clothing/glasses/sunglasses/blindfold
 
 /datum/gear/lipstick
 	display_name = "lipstick, select"

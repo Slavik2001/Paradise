@@ -59,6 +59,22 @@
 	return ..()
 
 /obj/effect/anomaly/process()
+	for(var/obj/item/I in get_turf(src))
+		if(!I.origin_tech)
+			continue
+		if (istype(I, /obj/item/relict_production/rapid_dupe))
+			var/amount = rand(1, 3)
+			for (var/i; i <= amount; i++)
+				new /obj/item/relic(get_turf(I))
+				var/datum/effect_system/smoke_spread/smoke = new
+				smoke.set_up(5, get_turf(I))
+				smoke.start()
+			qdel(I)
+			continue
+		if (prob(2))
+			new /obj/item/relic(get_turf(I))
+			qdel(I)
+
 	anomalyEffect()
 	if(death_time < world.time)
 		if(loc)
@@ -89,7 +105,9 @@
 
 /obj/effect/anomaly/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/analyzer))
-		to_chat(user, "<span class='notice'>Analyzing... [src]'s unstable field is fluctuating along frequency [format_frequency(aSignal.frequency)], code [aSignal.code].</span>")
+		to_chat(user, span_notice("Analyzing... [src]'s unstable field is fluctuating along frequency [format_frequency(aSignal.frequency)], code [aSignal.code]."))
+	return ATTACK_CHAIN_PROCEED_SUCCESS
+
 
 ///////////////////////
 
@@ -100,6 +118,15 @@
 	var/boing = FALSE
 	var/knockdown = FALSE
 	aSignal = /obj/item/assembly/signaler/anomaly/grav
+
+
+/obj/effect/anomaly/grav/Initialize(mapload, new_lifespan, _drops_core)
+	. = ..()
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
 
 /obj/effect/anomaly/grav/anomalyEffect()
 	..()
@@ -118,15 +145,24 @@
 			if(target && !target.stat)
 				O.throw_at(target, 5, 10)
 
-/obj/effect/anomaly/grav/Crossed(atom/movable/AM)
-	. = ..()
-	gravShock(AM)
 
-/obj/effect/anomaly/grav/Bump(atom/A)
-	gravShock(A)
+/obj/effect/anomaly/grav/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
+	gravShock(arrived)
+
+
+/obj/effect/anomaly/grav/Bump(atom/bumped_atom)
+	. = ..()
+	if(.)
+		return .
+	gravShock(bumped_atom)
+
 
 /obj/effect/anomaly/grav/Bumped(atom/movable/moving_atom)
+	. = ..()
 	gravShock(moving_atom)
+
 
 /obj/effect/anomaly/grav/proc/gravShock(mob/living/A)
 	if(boing && isliving(A) && !A.stat)
@@ -147,9 +183,15 @@
 	var/shockdamage = 20
 	var/explosive = TRUE
 
+
 /obj/effect/anomaly/flux/Initialize(mapload, new_lifespan, drops_core = TRUE, _explosive = TRUE)
 	. = ..()
 	explosive = _explosive
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
 
 /obj/effect/anomaly/flux/anomalyEffect()
 	..()
@@ -157,20 +199,27 @@
 	for(var/mob/living/M in get_turf(src))
 		mobShock(M)
 
-/obj/effect/anomaly/flux/Crossed(atom/movable/AM)
-	. = ..()
-	mobShock(AM)
 
-/obj/effect/anomaly/flux/Bump(atom/A)
-	mobShock(A)
+/obj/effect/anomaly/flux/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
+	mobShock(arrived)
+
+
+/obj/effect/anomaly/flux/Bump(atom/bumped_atom)
+	. = ..()
+	if(.)
+		return .
+	mobShock(bumped_atom)
 
 /obj/effect/anomaly/flux/Bumped(atom/movable/moving_atom)
+	. = ..()
 	mobShock(moving_atom)
 
 /obj/effect/anomaly/flux/proc/mobShock(mob/living/M)
 	if(canshock && istype(M))
 		canshock = FALSE //Just so you don't instakill yourself if you slam into the anomaly five times in a second.
-		M.electrocute_act(shockdamage, "[name]", safety = TRUE)
+		M.electrocute_act(shockdamage, "потоковой аномалии", flags = SHOCK_NOGLOVES)
 
 /obj/effect/anomaly/flux/detonate()
 	if(explosive)
@@ -199,6 +248,7 @@
 		investigate_log("teleported [key_name_log(M)] to [COORD(M)]", INVESTIGATE_TELEPORTATION)
 
 /obj/effect/anomaly/bluespace/Bumped(atom/movable/moving_atom)
+	. = ..()
 	if(isliving(moving_atom))
 		do_teleport(moving_atom, moving_atom, 8)
 		investigate_log("teleported [key_name_log(moving_atom)] to [COORD(moving_atom)]", INVESTIGATE_TELEPORTATION)

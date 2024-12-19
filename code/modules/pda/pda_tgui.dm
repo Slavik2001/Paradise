@@ -1,9 +1,12 @@
 // All the TGUI interactions are in their own file to keep things simpler
 
-/obj/item/pda/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.inventory_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/item/pda/ui_state(mob/user)
+	return GLOB.inventory_state
+
+/obj/item/pda/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "PDA", name, 600, 650, master_ui, state)
+		ui = new(user, src, "PDA", name)
 		ui.open()
 
 
@@ -20,6 +23,8 @@
 		var/list/prog_list = programs.Copy()
 		if(cartridge)
 			prog_list |= cartridge.programs
+		if(request_cartridge)
+			prog_list |= request_cartridge.programs
 
 		for(var/A in prog_list)
 			var/datum/data/pda/P = A
@@ -44,6 +49,7 @@
 	data["idLink"] = (id ? "[id.registered_name], [id.assignment]" : "--------")
 
 	data["cartridge_name"] = cartridge ? cartridge.name : ""
+	data["request_cartridge_name"] = request_cartridge ? request_cartridge.name : ""
 	data["stationTime"] = station_time_timestamp()
 
 	data["app"] = list()
@@ -93,10 +99,29 @@
 						P.unnotify()
 				cartridge = null
 				update_shortcuts()
+		if("Eject_Request")//Ejects the cart, only done from hub.
+			if(!isnull(request_cartridge))
+				var/turf/T = loc
+				if(ismob(T))
+					T = T.loc
+				var/obj/item/cartridge/C = request_cartridge
+				C.forceMove(T)
+				if(scanmode in C.programs)
+					scanmode = null
+				if(current_app in C.programs)
+					start_program(find_program(/datum/data/pda/app/main_menu))
+				if(C.radio)
+					C.radio.hostpda = null
+				for(var/datum/data/pda/P in notifying_programs)
+					if(P in C.programs)
+						P.unnotify()
+				request_cartridge.update_programs(null)
+				request_cartridge = null
+				update_shortcuts()
 		if("Authenticate")//Checks for ID
-			id_check(usr, 1)
+			id_check(usr, in_pda_usage = TRUE)
 		if("Ringtone")
-			return set_ringtone()
+			return set_ringtone(ui.user)
 		else
 			if(current_app)
 				. = current_app.ui_act(action, params, ui, state) // It needs proxying through down here so apps actually have their interacts called

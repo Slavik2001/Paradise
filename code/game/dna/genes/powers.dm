@@ -4,11 +4,12 @@
 
 /datum/dna/gene/basic/nobreath
 	name = "No Breathing"
-	activation_messages = list("You feel no need to breathe.")
-	deactivation_messages = list("You feel the need to breathe, once more.")
+	activation_messages = list("Вы не чувствуете необходимости дышать.")
+	deactivation_messages = list("Вы чувствуете необходимость дышать, снова.")
 	instability = GENE_INSTABILITY_MODERATE
-	mutation = BREATHLESS
 	activation_prob = 25
+	traits_to_add = list(TRAIT_NO_BREATH)
+
 
 /datum/dna/gene/basic/nobreath/New()
 	..()
@@ -17,25 +18,26 @@
 
 /datum/dna/gene/basic/regenerate
 	name = "Regenerate"
-	activation_messages = list("Your wounds start healing.")
-	deactivation_messages = list("Your regenerative powers feel like they've vanished.")
-	instability = GENE_INSTABILITY_MINOR
-	mutation = REGEN
+	activation_messages = list("Ваши раны начинают заживать.")
+	deactivation_messages = list("Ваши регенеративные способности как будто испарились.")
+	instability = GENE_INSTABILITY_MODERATE
+
 
 /datum/dna/gene/basic/regenerate/New()
 	..()
 	block = GLOB.regenerateblock
 
+
 /datum/dna/gene/basic/regenerate/OnMobLife(mob/living/carbon/human/H)
-	H.adjustBruteLoss(-0.1, FALSE)
-	H.adjustFireLoss(-0.1)
+	H.heal_overall_damage(2.5, 2.5)
+
 
 /datum/dna/gene/basic/increaserun
 	name = "Super Speed"
-	activation_messages = list("You feel swift and unencumbered.")
-	deactivation_messages = list("You feel slow.")
+	activation_messages = list("Вы чувствуете себя быстрым и свободным.")
+	deactivation_messages = list("Вы чувствуете себя медленным.")
 	instability = GENE_INSTABILITY_MINOR
-	mutation = RUN
+
 
 /datum/dna/gene/basic/increaserun/New()
 	..()
@@ -50,71 +52,81 @@
 
 /datum/dna/gene/basic/increaserun/activate(mob/living/mutant, flags)
 	. = ..()
-	mutant.ignore_slowdown(RUN)
+	mutant.ignore_slowdown(DNA_TRAIT)
 
 
 /datum/dna/gene/basic/increaserun/deactivate(mob/living/mutant, flags)
 	. = ..()
-	mutant.unignore_slowdown(RUN)
+	mutant.unignore_slowdown(DNA_TRAIT)
 
 
 /datum/dna/gene/basic/heat_resist
 	name = "Heat Resistance"
-	activation_messages = list("Your skin is icy to the touch.")
-	deactivation_messages = list("Your skin no longer feels icy to the touch.")
+	activation_messages = list("От вашей кожи веет холодом.")
+	deactivation_messages = list("Ваша кожа возвращается к привычной температуре.")
 	instability = GENE_INSTABILITY_MODERATE
-	mutation = HEATRES
+	traits_to_add = list(TRAIT_RESIST_HEAT)
+
 
 /datum/dna/gene/basic/heat_resist/New()
 	..()
 	block = GLOB.coldblock
 
+
 /datum/dna/gene/basic/heat_resist/OnDrawUnderlays(mob/M, g)
 	return "cold_s"
 
+
 /datum/dna/gene/basic/cold_resist
 	name = "Cold Resistance"
-	activation_messages = list("Your body is filled with warmth.")
-	deactivation_messages = list("Your body is no longer filled with warmth.")
+	activation_messages = list("От вашей кожи веет жаром.")
+	deactivation_messages = list("Ваша кожа возвращается к привычной температуре.")
 	instability = GENE_INSTABILITY_MODERATE
-	mutation = COLDRES
+	traits_to_add = list(TRAIT_RESIST_COLD)
+
 
 /datum/dna/gene/basic/cold_resist/New()
 	..()
 	block = GLOB.fireblock
 
+
 /datum/dna/gene/basic/cold_resist/OnDrawUnderlays(mob/M, g)
 	return "fire_s"
 
+
 /datum/dna/gene/basic/noprints
 	name = "No Prints"
-	activation_messages = list("Your fingers feel numb.")
-	deactivation_messages = list("your fingers no longer feel numb.")
+	activation_messages = list("Ваши пальцы словно онемели.")
+	deactivation_messages = list("Ваши пальцы больше не чувствуют онемения.")
 	instability = GENE_INSTABILITY_MINOR
-	mutation = FINGERPRINTS
+	traits_to_add = list(TRAIT_NO_FINGERPRINTS)
+
 
 /datum/dna/gene/basic/noprints/New()
 	..()
 	block = GLOB.noprintsblock
 
+
 /datum/dna/gene/basic/noshock
 	name = "Shock Immunity"
-	activation_messages = list("Your skin feels dry and unreactive.")
-	deactivation_messages = list("Your skin no longer feels dry and unreactive.")
+	activation_messages = list("Ваша кожа кажется сухой и нечувствительной.")
+	deactivation_messages = list("Ваша кожа больше не кажется сухой и нечувствительной.")
 	instability = GENE_INSTABILITY_MODERATE
-	mutation = NO_SHOCK
 	traits_to_add = list(TRAIT_SHOCKIMMUNE)
+
 
 /datum/dna/gene/basic/noshock/New()
 	..()
 	block = GLOB.shockimmunityblock
 
+
 /datum/dna/gene/basic/midget
 	name = "Midget"
-	activation_messages = list("Everything around you seems bigger now...")
-	deactivation_messages = list("Everything around you seems to shrink...")
+	activation_messages = list("Теперь все вокруг кажется больше...")
+	deactivation_messages = list("Кажется, что все вокруг уменьшается...")
 	instability = GENE_INSTABILITY_MINOR
-	mutation = DWARF
+	traits_to_add = list(TRAIT_DWARF)
+
 
 /datum/dna/gene/basic/midget/New()
 	..()
@@ -136,11 +148,12 @@
 // OLD HULK BEHAVIOR
 /datum/dna/gene/basic/hulk
 	name = "Hulk"
-	activation_messages = list("Your muscles hurt.")
-	deactivation_messages = list("Your muscles shrink.")
+	activation_messages = list("Ваши мышцы увеличиваются.")
+	deactivation_messages = list("Ваши мышцы уменьшаются.")
 	instability = GENE_INSTABILITY_MAJOR
-	mutation = HULK
+	traits_to_add = list(TRAIT_HULK)
 	activation_prob = 15
+
 
 /datum/dna/gene/basic/hulk/New()
 	..()
@@ -165,11 +178,12 @@
 
 /datum/dna/gene/basic/xray
 	name = "X-Ray Vision"
-	activation_messages = list("The walls suddenly disappear.")
-	deactivation_messages = list("the walls around you re-appear.")
+	activation_messages = list("Стены внезапно исчезают.")
+	deactivation_messages = list("Стены вокруг вас появляются вновь.")
 	instability = GENE_INSTABILITY_MAJOR
-	mutation = XRAY
+	traits_to_add = list(TRAIT_XRAY)
 	activation_prob = 15
+
 
 /datum/dna/gene/basic/xray/New()
 	..()
@@ -179,26 +193,51 @@
 /datum/dna/gene/basic/xray/activate(mob/living/mutant, flags)
 	. = ..()
 	mutant.update_sight()
-	mutant.update_icons() //Apply eyeshine as needed.
+	mutant.update_misc_effects() //Apply eyeshine as needed.
 
 
 /datum/dna/gene/basic/xray/deactivate(mob/living/mutant, flags)
 	. = ..()
 	mutant.update_sight()
-	mutant.update_icons() //Remove eyeshine as needed.
+	mutant.update_misc_effects() //Remove eyeshine as needed.
 
 
 /datum/dna/gene/basic/tk
 	name = "Telekenesis"
-	activation_messages = list("You feel smarter.")
-	deactivation_messages = list("You feel dumber.")
+	activation_messages = list("Вы чувствуете себя умнее.")
+	deactivation_messages = list("Вы чувствуете себя глупее.")
 	instability = GENE_INSTABILITY_MAJOR
-	mutation = TK
+	traits_to_add = list(TRAIT_TELEKINESIS)
 	activation_prob = 15
+
 
 /datum/dna/gene/basic/tk/New()
 	..()
 	block = GLOB.teleblock
 
+
 /datum/dna/gene/basic/tk/OnDrawUnderlays(mob/M, g)
 	return "telekinesishead_s"
+
+
+/datum/dna/gene/basic/farvision
+	name = "Far vision"
+	activation_messages = list("Теперь вы можете видеть дальше, чем раньше.")
+	deactivation_messages = list("Дальность вашего взора вернулась к нормальному состоянию.")
+	instability = GENE_INSTABILITY_MODERATE
+
+
+/datum/dna/gene/basic/farvision/New()
+	..()
+	block = GLOB.farvisionblock
+
+
+/datum/dna/gene/basic/farvision/activate(mob/living/mutant, flags)
+	. = ..()
+	mutant.AddSpell(new /obj/effect/proc_holder/spell/view_range/genetic)
+
+
+/datum/dna/gene/basic/farvision/deactivate(mob/living/mutant, flags)
+	. = ..()
+	mutant.RemoveSpell(/obj/effect/proc_holder/spell/view_range/genetic)
+

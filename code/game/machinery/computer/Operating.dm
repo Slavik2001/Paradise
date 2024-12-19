@@ -55,10 +55,10 @@
 	add_fingerprint(user)
 	ui_interact(user)
 
-/obj/machinery/computer/operating/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/computer/operating/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "OperatingComputer", "Patient Monitor", 650, 455, master_ui, state)
+		ui = new(user, src, "OperatingComputer", "Patient Monitor")
 		ui.open()
 
 /obj/machinery/computer/operating/ui_data(mob/user)
@@ -101,15 +101,16 @@
 				occupantData["temperatureSuitability"] = 1
 		else if(isanimal(occupant))
 			var/mob/living/simple_animal/silly = occupant
-			if(silly.bodytemperature < silly.minbodytemp)
+			var/datum/component/animal_temperature/temp = silly.GetComponent(/datum/component/animal_temperature)
+			if(silly.bodytemperature < temp?.minbodytemp)
 				occupantData["temperatureSuitability"] = -3
-			else if(silly.bodytemperature > silly.maxbodytemp)
+			else if(silly.bodytemperature > temp?.maxbodytemp)
 				occupantData["temperatureSuitability"] = 3
 		// Blast you, imperial measurement system
 		occupantData["btCelsius"] = occupant.bodytemperature - T0C
 		occupantData["btFaren"] = ((occupant.bodytemperature - T0C) * (9.0/5.0))+ 32
 
-		if(ishuman(occupant) && !(NO_BLOOD in occupant.dna.species.species_traits))
+		if(ishuman(occupant) && !HAS_TRAIT(occupant, TRAIT_NO_BLOOD))
 			var/mob/living/carbon/human/H = occupant
 			occupantData["pulse"] = occupant.get_pulse(GETPULSE_TOOL)
 			occupantData["hasBlood"] = 1

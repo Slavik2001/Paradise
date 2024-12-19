@@ -8,6 +8,10 @@
 	hitsound_wall = "ricochet"
 	impact_effect_type = /obj/effect/temp_visual/impact_effect
 
+/obj/item/projectile/bullet/slug
+	armour_penetration = 40
+	damage = 30
+
 /obj/item/projectile/bullet/weakbullet //beanbag, heavy stamina damage
 	name = "beanbag slug"
 	damage = 5
@@ -137,7 +141,7 @@
 	. = ..()
 	if((blocked != 100) && iscarbon(target))
 		var/mob/living/carbon/C = target
-		C.adjustToxLoss(9)
+		C.apply_damage(9, TOX)
 
 /obj/item/projectile/bullet/pellet/flechette
 	name = "flechette"
@@ -210,6 +214,11 @@
 	damage = 50
 	armour_penetration = -50
 
+/obj/item/projectile/bullet/midbullet3/hp/on_hit(atom/target, blocked, hit_zone)
+	if(..(target, blocked))
+		var/mob/living/M = target
+		M.Slowed(2 SECONDS)
+
 /obj/item/projectile/bullet/midbullet3/ap
 	damage = 27
 	armour_penetration = 40
@@ -238,7 +247,7 @@
 	name = "incendiary slug"
 	damage = 20
 
-/obj/item/projectile/bullet/incendiary/shell/Move()
+/obj/item/projectile/bullet/incendiary/shell/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	var/turf/location = get_turf(src)
 	if(location)
@@ -387,10 +396,12 @@
 /obj/item/projectile/bullet/weakbullet3/c257
 	damage = 20
 
-/obj/item/projectile/bullet/weakbullet3/c257/phosphorus
-
 /obj/item/projectile/bullet/weakbullet3/c257/phosphorus/on_hit(atom/target, blocked, hit_zone)
 	do_sparks(rand(1, 3), FALSE, target)
 	if(..(target, blocked))
 		var/mob/living/target_living = target
-		target_living.flash_eyes()
+
+		if(target_living.check_eye_prot() == FLASH_PROTECTION_FLASH)	// Just a visual effect for sunglasses users.
+			target_living.flash_eyes(intensity = 2, visual = TRUE)
+		else
+			target_living.flash_eyes(affect_silicon = TRUE)

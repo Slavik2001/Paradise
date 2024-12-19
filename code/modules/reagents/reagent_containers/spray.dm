@@ -18,7 +18,7 @@
 	volume = 250
 	possible_transfer_amounts = null
 
-/obj/item/reagent_containers/spray/afterattack(atom/A, mob/user)
+/obj/item/reagent_containers/spray/afterattack(atom/A, mob/user, proximity, params)
 	if(isstorage(A) || istype(A, /obj/structure/table) || istype(A, /obj/structure/rack) || istype(A, /obj/structure/closet) \
 	|| istype(A, /obj/item/reagent_containers) || istype(A, /obj/structure/sink) || istype(A, /obj/structure/janitorialcart) || istype(A, /obj/machinery/hydroponics))
 		return
@@ -134,6 +134,12 @@
 
 /obj/item/reagent_containers/spray/cleaner/medical/empty
     list_reagents = list()
+
+/obj/item/reagent_containers/spray/cleaner/tactical
+    name = "Tactical cleaner"
+    desc = "Бутылочка из прочнейшего тёмно-синего пластика, распылитель чёрного цвета украшен тактическим снаряжением, разработана уборочно-силовыми структурами Нанотрейзен для ЗАЧИСТКИ и контроля грязи в помещениях."
+    icon_state = "cleaner_tactical"
+    item_state = "cleaner_tactical"
 
 /obj/item/reagent_containers/spray/blue_cleaner
     name = "bluespace cleaner"

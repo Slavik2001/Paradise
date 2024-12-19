@@ -8,7 +8,15 @@
 
 /mob/living/simple_animal/bot/mulebot
 	name = "\improper MULEbot"
-	desc = "A Multiple Utility Load Effector bot."
+	desc = "Многофункциональный Узкоспециализированный Легкомоторный робот. Нет, это не просто случайные слова, подобранные для красивого написания. Честно."
+	ru_names = list(
+		NOMINATIVE = "МУЛбот",
+		GENITIVE = "МУЛбота",
+		DATIVE = "МУЛботу",
+		ACCUSATIVE = "МУЛбота",
+		INSTRUMENTAL = "МУЛботом",
+		PREPOSITIONAL = "МУЛботе",
+	)
 	icon_state = "mulebot0"
 	density = TRUE
 	move_resist = MOVE_FORCE_STRONG
@@ -26,7 +34,7 @@
 	bot_type = MULE_BOT
 	bot_filter = RADIO_MULEBOT
 	model = "MULE"
-	bot_purpose = "deliver crates and other packages between departments, as requested"
+	bot_purpose = "доставлять ящики и другие посылки получателям"
 	bot_core_type = /obj/machinery/bot_core/mulebot
 	path_image_color = "#7F5200"
 
@@ -64,8 +72,8 @@
 	var/currentDNA = null
 
 
-/mob/living/simple_animal/bot/mulebot/New()
-	..()
+/mob/living/simple_animal/bot/mulebot/Initialize(mapload)
+	. = ..()
 	wires = new /datum/wires/mulebot(src)
 	var/datum/job/cargo_tech/J = new/datum/job/cargo_tech
 	access_card.access = J.get_access()
@@ -74,7 +82,7 @@
 
 	mulebot_count++
 	set_suffix(suffix ? suffix : "#[mulebot_count]")
-	RegisterSignal(src, COMSIG_CROSSED_MOVABLE, PROC_REF(human_squish_check))
+	RegisterSignal(src, COMSIG_ATOM_ENTERING, PROC_REF(on_entering))
 
 
 /mob/living/simple_animal/bot/mulebot/Destroy()
@@ -87,10 +95,6 @@
 
 /mob/living/simple_animal/bot/mulebot/get_cell()
 	return cell
-
-
-/mob/living/simple_animal/bot/mulebot/CanPathfindPass(obj/item/card/id/ID, to_dir, atom/movable/caller, no_id)
-	return FALSE
 
 
 /mob/living/simple_animal/bot/mulebot/proc/set_suffix(_suffix)
@@ -107,48 +111,53 @@
 
 
 /mob/living/simple_animal/bot/mulebot/attackby(obj/item/I, mob/user, params)
-	if(istype(I,/obj/item/stock_parts/cell) && open && !cell)
+	if(user.a_intent == INTENT_HARM)
+		var/atom/cached_load = load
+		. = ..()
+		if(!ATTACK_CHAIN_CANCEL_CHECK(.) && knock_off(1 + I.force * 2))
+			user.visible_message(
+				span_danger("[user] столкнул [cached_load] с [declent_ru(GENITIVE)]!"),
+				span_danger("Вы столкнули [cached_load] с [declent_ru(GENITIVE)]!"),
+			)
+		return .
+
+	if(istype(I,/obj/item/stock_parts/cell))
+		add_fingerprint(user)
+		if(!open)
+			balloon_alert(user, "техпанель закрыта!")
+			return ATTACK_CHAIN_PROCEED
+		if(cell)
+			balloon_alert(user, "слот батареи занят!")
+			return ATTACK_CHAIN_PROCEED
 		if(!user.drop_transfer_item_to_loc(I, src))
-			return
-		var/obj/item/stock_parts/cell/C = I
-		cell = C
-		visible_message("[user] inserts a cell into [src].",
-						span_notice("You insert the new cell into [src]."))
+			return ..()
+		cell = I
+		visible_message(span_notice("[user] вставил батарею в [declent_ru(GENITIVE)]."))
+		balloon_alert(user, "вы вставили батарею внутрь")
 		update_controls()
-	else if(I.tool_behaviour == TOOL_CROWBAR && open && cell)
-		cell.add_fingerprint(usr)
-		cell.forceMove(loc)
-		cell = null
-		visible_message("[user] crowbars out the power cell from [src].",
-						span_notice("You pry the powercell out of [src]."))
-		update_controls()
-	else if(I.tool_behaviour == TOOL_WRENCH)
-		if(health < maxHealth)
-			adjustBruteLoss(-25)
-			updatehealth()
-			user.visible_message(span_notice("[user] repairs [src]!"),
-								span_notice("You repair [src]!"))
-		else
-			to_chat(user, span_notice("[src] does not need a repair!"))
-	else if((I.tool_behaviour == TOOL_MULTITOOL || I.tool_behaviour == TOOL_WIRECUTTER) && open)
-		return attack_hand(user)
-	else if(load && ismob(load))  // chance to knock off rider
-		if(prob(1 + I.force * 2))
-			unload(0)
-			user.visible_message(span_danger("[user] knocks [load] off [src] with \the [I]!"),
-								span_danger("You knock [load] off [src] with \the [I]!"))
-		else
-			to_chat(user, span_warning("You hit [src] with \the [I] but to no effect!"))
-			..()
-	else
-		..()
-	update_icon()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	var/atom/cached_load = load
+	. = ..()
+	if(!ATTACK_CHAIN_CANCEL_CHECK(.) && knock_off(1 + I.force * 2))
+		user.visible_message(
+			span_danger("[user] столкнул [cached_load] с [declent_ru(GENITIVE)]!"),
+			span_danger("Вы столкнули [cached_load] с [declent_ru(GENITIVE)]!"),
+		)
+
+
+/// Chance to knock off the rider
+/mob/living/simple_animal/bot/mulebot/proc/knock_off(probability)
+	if(!ismob(load) || !prob(probability))
+		return FALSE
+	unload(NONE)
+	return TRUE
 
 
 /mob/living/simple_animal/bot/mulebot/screwdriver_act(mob/living/user, obj/item/I)
 	. = ..()
 	if(!.)
-		return
+		return .
 
 	if(open)
 		on = FALSE
@@ -156,12 +165,68 @@
 	update_icon()
 
 
+/mob/living/simple_animal/bot/mulebot/wrench_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(health >= maxHealth)
+		add_fingerprint(user)
+		balloon_alert(user, "ремонт не требуется")
+		return .
+	user.visible_message(
+		span_notice("[user] ремонтиру[pluralize_ru(user.gender, "ет", "ют")] [declent_ru(GENITIVE)]."),
+		span_notice("Вы ремонтируете [declent_ru(GENITIVE)].")
+	)
+	if(!I.use_tool(src, user, 2 SECONDS, volume = I.tool_volume) || health >= maxHealth)
+		return .
+	heal_damage_type(25, BRUTE)
+
+
+/mob/living/simple_animal/bot/mulebot/crowbar_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!open)
+		add_fingerprint(user)
+		balloon_alert(user, "техпанель закрыта!")
+		return .
+	if(!cell)
+		add_fingerprint(user)
+		balloon_alert(user, "слот для батареи пуст!")
+		return .
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	visible_message(span_notice("[user] вынул батарею из [declent_ru(GENITIVE)]."))
+	balloon_alert(user, "батарея извлечена")
+	cell.add_fingerprint(user)
+	cell.forceMove(drop_location())
+	cell = null
+
+
+/mob/living/simple_animal/bot/mulebot/wirecutter_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!open)
+		add_fingerprint(user)
+		balloon_alert(user, "техпанель закрыта!")
+		return .
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	attack_hand(user)
+
+
+/mob/living/simple_animal/bot/mulebot/multitool_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!open)
+		add_fingerprint(user)
+		balloon_alert(user, "техпанель закрыта!")
+		return .
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	attack_hand(user)
+
+
 /mob/living/simple_animal/bot/mulebot/emag_act(mob/user)
 	if(emagged < 1)
 		emagged = 1
 	if(!open)
 		locked = !locked
-		to_chat(user, span_notice("You [locked ? "lock" : "unlock"] [src]'s controls!"))
+		balloon_alert(user, "техпанель [locked ? "заблокирована" : "разблокирована"]")
 	flick("mulebot-emagged", src)
 	playsound(loc, 'sound/effects/sparks1.ogg', 100, FALSE)
 
@@ -201,7 +266,7 @@
 		if(prob(50) && !isnull(load))
 			unload(0)
 		if(prob(25))
-			visible_message(span_danger("Something shorts out inside [src]!"))
+			visible_message(span_danger("Что-то замыкается внутри [declent_ru(GENITIVE)]!"))
 			wires.cut_random()
 
 
@@ -220,11 +285,11 @@
 				turn_off()
 			else if(cell && !open)
 				if(!turn_on())
-					to_chat(usr, span_warning("You can't switch on [src]!"))
+					to_chat(usr, span_warning("Вы не можете включить !"))
 					return
 			else
 				return
-			visible_message("[usr] switches [on ? "on" : "off"] [src].")
+			visible_message("[usr] [on ? "включает" : "выключает"] [declent_ru(GENITIVE)].")
 		if("cellremove")
 			if(open && cell && !usr.get_active_hand())
 				cell.update_icon()
@@ -233,8 +298,8 @@
 				cell.add_fingerprint(usr)
 				cell = null
 
-				usr.visible_message(span_notice("[usr] removes the power cell from [src]."),
-									span_notice("You remove the power cell from [src]."))
+				usr.visible_message(span_notice("[usr] вынул батарею из [declent_ru(GENITIVE)]."),
+									span_notice("Вы вынули батарею из [declent_ru(GENITIVE)]."))
 		if("cellinsert")
 			if(open && !cell)
 				var/obj/item/stock_parts/cell/C = usr.get_active_hand()
@@ -243,8 +308,8 @@
 					cell = C
 					C.add_fingerprint(usr)
 
-					usr.visible_message(span_notice("[usr] inserts a power cell into [src]."),
-										span_notice("You insert the power cell into [src]."))
+					usr.visible_message(span_notice("[usr] вставил батарею в [declent_ru(GENITIVE)]."),
+										span_notice("Вы вставили батарею в [declent_ru(GENITIVE)]."))
 		if("stop")
 			if(mode >= BOT_DELIVER)
 				bot_reset()
@@ -255,15 +320,15 @@
 			if(mode == BOT_IDLE || mode == BOT_DELIVER)
 				start_home()
 		if("destination")
-			var/new_dest = input(usr, "Enter Destination:", name, destination) as null|anything in GLOB.deliverybeacontags
+			var/new_dest = input(usr, "Введите пункт назначения:", name, destination) as null|anything in GLOB.deliverybeacontags
 			if(new_dest)
 				set_destination(new_dest)
 		if("setid")
-			var/new_id = stripped_input(usr, "Enter ID:", name, suffix, MAX_NAME_LEN)
+			var/new_id = tgui_input_text(usr, "Введите ID:", name, suffix, MAX_NAME_LEN)
 			if(new_id)
 				set_suffix(new_id)
 		if("sethome")
-			var/new_home = input(usr, "Enter Home:", name, home_destination) as null|anything in GLOB.deliverybeacontags
+			var/new_home = input(usr, "Введите домашнюю точку:", name, home_destination) as null|anything in GLOB.deliverybeacontags
 			if(new_home)
 				home_destination = new_home
 		if("unload")
@@ -287,7 +352,7 @@
 		update_controls()
 		return TRUE
 	else
-		to_chat(user, span_danger("Access denied."))
+		balloon_alert(user, "отказано в доступе!")
 		return FALSE
 
 
@@ -297,16 +362,16 @@
 	var/dat
 	dat += hack(user)
 	dat += showpai(user)
-	dat += "<h3>Multiple Utility Load Effector Mk. V</h3>"
+	dat += "<h3>Многофункциональный Узкоспециализированный Легкомоторный робот v5.0</h3>"
 	dat += "<b>ID:</b> [suffix]<BR>"
-	dat += "<b>Power:</b> [on ? "On" : "Off"]<BR>"
+	dat += "<b>Питание:</b> [on ? "Включён" : "Выключен"]<BR>"
 
 	if(!open)
-		dat += "<h3>Status</h3>"
+		dat += "<h3>Состояние</h3>"
 		dat += "<div class='statusDisplay'>"
 		switch(mode)
 			if(BOT_IDLE)
-				dat += "<span class='good'>Ready</span>"
+				dat += "<span class='good'>Готовность</span>"
 			if(BOT_DELIVER)
 				dat += "<span class='good'>[mode_name[BOT_DELIVER]]</span>"
 			if(BOT_GO_HOME)
@@ -319,40 +384,40 @@
 				dat += "<span class='bad'>[mode_name[BOT_NO_ROUTE]]</span>"
 		dat += "</div>"
 
-		dat += "<b>Current Load:</b> [load ? load.name : "<i>none</i>"]<BR>"
-		dat += "<b>Destination:</b> [!destination ? "<i>none</i>" : destination]<BR>"
-		dat += "<b>Power level:</b> [cell ? cell.percent() : 0]%"
+		dat += "<b>Груз</b> [load ? load.name : "<i>отсутствует</i>"]<BR>"
+		dat += "<b>Пункт назначения:</b> [!destination ? "<i>отсутствует</i>" : destination]<BR>"
+		dat += "<b>Заряд:</b> [cell ? cell.percent() : 0]%"
 
 		if(locked && !ai && !user.can_admin_interact())
-			dat += "&nbsp;<br /><div class='notice'>Controls are locked</div><A href='?src=[UID()];op=unlock'>Unlock Controls</A>"
+			dat += "&nbsp;<br /><div class='notice'>Управление поведением заблокировано</div><a href='byond://?src=[UID()];op=unlock'>Разблокировать</A>"
 		else
-			dat += "&nbsp;<br /><div class='notice'>Controls are unlocked</div><A href='?src=[UID()];op=lock'>Lock Controls</A><BR><BR>"
+			dat += "&nbsp;<br /><div class='notice'>Управление поведением разблокировано</div><a href='byond://?src=[UID()];op=lock'>Заблокировать</A><BR><BR>"
 
-			dat += "<A href='?src=[UID()];op=power'>Toggle Power</A><BR>"
-			dat += "<A href='?src=[UID()];op=stop'>Stop</A><BR>"
-			dat += "<A href='?src=[UID()];op=go'>Proceed</A><BR>"
-			dat += "<A href='?src=[UID()];op=home'>Return to Home</A><BR>"
-			dat += "<A href='?src=[UID()];op=destination'>Set Destination</A><BR>"
-			dat += "<A href='?src=[UID()];op=setid'>Set Bot ID</A><BR>"
-			dat += "<A href='?src=[UID()];op=sethome'>Set Home</A><BR>"
-			dat += "<A href='?src=[UID()];op=autoret'>Toggle Auto Return Home</A> ([auto_return ? "On":"Off"])<BR>"
-			dat += "<A href='?src=[UID()];op=autopick'>Toggle Auto Pickup Crate</A> ([auto_pickup ? "On":"Off"])<BR>"
-			dat += "<A href='?src=[UID()];op=report'>Toggle Delivery Reporting</A> ([report_delivery ? "On" : "Off"])<BR>"
+			dat += "<a href='byond://?src=[UID()];op=power'>Включить/Выключить</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=stop'>Остановиться</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=go'>Продолжить движение</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=home'>Возврат домой</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=destination'>Задать точку назначения</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=setid'>Задать ID роботу</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=sethome'>Задать домашнюю точку</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=autoret'>[auto_return ? "Включить":"Выключить"] автоматическое возвращение домой</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=autopick'>[auto_return ? "Включить":"Выключить"] автоматический подбор ящиков</A><BR>"
+			dat += "<a href='byond://?src=[UID()];op=report'>[auto_return ? "Включить":"Выключить"] автоматический отчёт о доставке</A><BR>"
 			if(load)
-				dat += "<A href='?src=[UID()];op=unload'>Unload Now</A><BR>"
-			dat += "<div class='notice'>The maintenance hatch is closed.</div>"
+				dat += "<a href='byond://?src=[UID()];op=unload'>Разгрузиться</A><BR>"
+			dat += "<div class='notice'>Панель технического обслуживания закрыта</div>"
 	else
 		if(!ai)
-			dat += "<div class='notice'>The maintenance hatch is open.</div><BR>"
-			dat += "<b>Power cell:</b> "
+			dat += "<div class='notice'>Панель технического обслуживания открыта</div><BR>"
+			dat += "<b>Батарея:</b> "
 			if(cell)
-				dat += "<A href='?src=[UID()];op=cellremove'>Installed</A><BR>"
+				dat += "<a href='byond://?src=[UID()];op=cellremove'>Установлена</A><BR>"
 			else
-				dat += "<A href='?src=[UID()];op=cellinsert'>Removed</A><BR>"
+				dat += "<a href='byond://?src=[UID()];op=cellinsert'>Отсутствует</A><BR>"
 
 			wires.Interact(user)
 		else
-			dat += "<div class='notice'>The bot is in maintenance mode and cannot be controlled.</div><BR>"
+			dat += "<div class='notice'>Робот в режиме технического обслуживания - управление поведением заблокировано</div><BR>"
 
 	return dat
 
@@ -365,13 +430,13 @@
 /mob/living/simple_animal/bot/mulebot/proc/buzz(type)
 	switch(type)
 		if(SIGH)
-			audible_message("[src] makes a sighing buzz.")
+			audible_message("[capitalize(declent_ru(NOMINATIVE))] разочарованно гудит.")
 			playsound(loc, 'sound/machines/buzz-sigh.ogg', 50, 0)
 		if(ANNOYED)
-			audible_message("[src] makes an annoyed buzzing sound.")
+			audible_message("[capitalize(declent_ru(NOMINATIVE))] раздражённо жужжит.")
 			playsound(loc, 'sound/machines/buzz-two.ogg', 50, 0)
 		if(DELIGHT)
-			audible_message("[src] makes a delighted ping!")
+			audible_message("[capitalize(declent_ru(NOMINATIVE))] восторженно звенит!")
 			playsound(loc, 'sound/machines/ping.ogg', 50, 0)
 
 
@@ -423,7 +488,7 @@
 
 	load = AM
 	mode = BOT_IDLE
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 
 /mob/living/simple_animal/bot/mulebot/proc/load_mob(mob/living/M)
@@ -457,17 +522,14 @@
 
 	mode = BOT_IDLE
 
-	unbuckle_all_mobs()
+	unbuckle_all_mobs(force = TRUE)
 
 	if(load)
-		load.forceMove(loc)
-		load.pixel_y = initial(load.pixel_y)
-		load.layer = initial(load.layer)
-		SET_PLANE_EXPLICIT(load, initial(load.plane), src)
+		if(!ismob(load))	// already unbuckled otherwise
+			load.forceMove(loc)
 		if(dirn)
-			var/turf/T = loc
-			var/turf/newT = get_step(T,dirn)
-			if(load.CanPass(load, get_dir(newT, src))) //Can't get off onto anything that wouldn't let you pass normally
+			var/turf/newT = get_step(load.loc, dirn)
+			if(newT.CanPass(load, get_dir(newT, src))) //Can't get off onto anything that wouldn't let you pass normally
 				step(load, dirn)
 		load = null
 
@@ -477,14 +539,11 @@
 	// this seems to happen sometimes due to race conditions
 	// with items dropping as mobs are loaded
 
-	for(var/atom/movable/AM in src)
-		if(AM == cell || AM == access_card || AM == Radio || AM == paicard || AM == bot_core || ispulsedemon(AM))
+	for(var/atom/movable/thing as anything in src)
+		if(thing == cell || thing == access_card || thing == Radio || thing == paicard || thing == bot_core || ispulsedemon(thing))
 			continue
+		thing.forceMove(loc)
 
-		AM.forceMove(loc)
-		AM.layer = initial(AM.layer)
-		AM.pixel_y = initial(AM.pixel_y)
-		AM.plane = initial(AM.plane)
 
 
 /mob/living/simple_animal/bot/mulebot/call_bot()
@@ -600,9 +659,9 @@
 /**
  * calculates a path to the current destination, given an optional turf to avoid.
  */
-/mob/living/simple_animal/bot/mulebot/calc_path(turf/avoid = null)
+/mob/living/simple_animal/bot/mulebot/calc_path(turf/avoid)
 	check_bot_access()
-	set_path(get_path_to(src, target, 250, id=access_card, exclude = avoid))
+	set_path(get_path_to(src, target, max_distance = 250, access = access_card.GetAccess(), exclude = avoid, diagonal_handling = DIAGONAL_REMOVE_ALL))
 
 
 /**
@@ -649,21 +708,21 @@
 /mob/living/simple_animal/bot/mulebot/proc/at_target()
 	if(!reached_target)
 		radio_channel = "Supply" //Supply channel
-		audible_message("[src] makes a chiming sound!")
+		audible_message("[capitalize(declent_ru(NOMINATIVE))] громко звенит!")
 		playsound(loc, 'sound/machines/chime.ogg', 50, 0)
 		reached_target = 1
 
 		if(pathset) //The AI called us here, so notify it of our arrival.
 			loaddir = dir //The MULE will attempt to load a crate in whatever direction the MULE is "facing".
 			if(calling_ai)
-				to_chat(calling_ai, "<span class='notice'>[bicon(src)] [src] wirelessly plays a chiming sound!</span>")
+				to_chat(calling_ai, "<span class='notice'>[bicon(src)] [capitalize(declent_ru(NOMINATIVE))] удалённо проигрывает звук звонка!</span>")
 				playsound(calling_ai, 'sound/machines/chime.ogg',40, 0)
 				calling_ai = null
 				radio_channel = "AI Private" //Report on AI Private instead if the AI is controlling us.
 
 		if(load)		// if loaded, unload at target
 			if(report_delivery)
-				speak("Destination <b>[destination]</b> reached. Unloading [load].", radio_channel)
+				speak("Пункт назначения <b>[destination]</b> достигнут. Выгружаю [load].", radio_channel)
 			if(istype(load, /obj/structure/closet/crate))
 				var/obj/structure/closet/crate/C = load
 				C.notifyRecipient(destination)
@@ -682,7 +741,7 @@
 				if(AM && AM.Adjacent(src))
 					load(AM)
 					if(report_delivery)
-						speak("Now loading [load] at <b>[get_area(src)]</b>.", radio_channel)
+						speak("Загружаю [load] в локации <b>[get_area(src)]</b>.", radio_channel)
 		// whatever happened, check to see if we return home
 
 		if(auto_return && home_destination && destination != home_destination)
@@ -693,7 +752,7 @@
 			bot_reset()	// otherwise go idle
 
 
-/mob/living/simple_animal/bot/mulebot/Move(turf/simulated/next)
+/mob/living/simple_animal/bot/mulebot/Move(turf/simulated/next, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 
 	if(. && istype(next))
@@ -721,27 +780,30 @@
 /**
  * Called when bot bumps into anything.
  */
-/mob/living/simple_animal/bot/mulebot/Bump(atom/obs)
-	if(wires.is_cut(WIRE_MOB_AVOIDANCE))	// usually just bumps, but if avoidance disabled knock over mobs
-		var/mob/living/L = obs
-		if(ismob(L))
-			if(isrobot(L))
-				visible_message(span_danger("[src] bumps into [L]!"))
-			else
-				if(!paicard)
-					add_attack_logs(src, L, "Knocked down")
-					visible_message(span_danger("[src] knocks over [L]!"))
-					L.stop_pulling()
-					L.Weaken(16 SECONDS)
-	return ..()
+/mob/living/simple_animal/bot/mulebot/Bump(mob/living/bumped_living)
+	. = ..()
+	if(!wires.is_cut(WIRE_MOB_AVOIDANCE) || !isliving(bumped_living))
+		return .
+
+	// usually just bumps, but if avoidance disabled knock over mobs
+	if(isrobot(bumped_living))
+		visible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] врезается в [bumped_living]!"))
+		return .
+
+	if(paicard)
+		return .
+
+	add_attack_logs(src, bumped_living, "Knocked down")
+	visible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] сбивает [bumped_living]!"))
+	bumped_living.Weaken(16 SECONDS)
 
 
 /mob/living/simple_animal/bot/mulebot/proc/RunOver(mob/living/carbon/human/H)
 	if(H.player_logged)//No running over SSD people
 		return
 	add_attack_logs(src, H, "Run over (DAMTYPE: [uppertext(BRUTE)])")
-	H.visible_message(span_danger("[src] drives over [H]!"),
-					span_userdanger("[src] drives over you!"))
+	H.visible_message(span_danger("[capitalize(declent_ru(NOMINATIVE))] переезжает [H]!"),
+					span_userdanger("[capitalize(declent_ru(NOMINATIVE))] переезжает вас!"))
 	playsound(loc, 'sound/effects/splat.ogg', 50, 1)
 
 	var/damage = rand(5, 15)
@@ -752,7 +814,7 @@
 	H.apply_damage(0.5*damage, BRUTE, BODY_ZONE_L_ARM, run_armor_check(BODY_ZONE_L_ARM, MELEE))
 	H.apply_damage(0.5*damage, BRUTE, BODY_ZONE_R_ARM, run_armor_check(BODY_ZONE_R_ARM, MELEE))
 
-	if(NO_BLOOD in H.dna.species.species_traits)//Does the run over mob have blood?
+	if(HAS_TRAIT(H, TRAIT_NO_BLOOD))//Does the run over mob have blood?
 		return//If it doesn't it shouldn't bleed (Though a check should be made eventually for things with liquid in them, like slime people.)
 
 	var/turf/T = get_turf(src)//Where are we?
@@ -770,15 +832,15 @@
 	switch(command)
 		if("start")
 			if(load)
-				to_chat(src, span_warningbig("DELIVER [load] TO [destination]"))
+				to_chat(src, span_warningbig("ДОСТАВИТЬ [load] В ЛОКАЦИЮ [destination]"))
 			else
-				to_chat(src, span_warningbig("PICK UP DELIVERY AT [destination]"))
+				to_chat(src, span_warningbig("ЗАБРАТЬ ГРУЗ В ЛОКАЦИИ [destination]"))
 
 		if("unload", "load")
 			if(load)
-				to_chat(src, span_warningbig("UNLOAD"))
+				to_chat(src, span_warningbig("ВЫГРУЗИТЬСЯ"))
 			else
-				to_chat(src, span_warningbig("LOAD"))
+				to_chat(src, span_warningbig("ЗАГРУЗИТЬСЯ"))
 		if("autoret", "autopick", "target")
 			return
 		else
@@ -886,7 +948,7 @@
 
 
 /mob/living/simple_animal/bot/mulebot/explode()
-	visible_message(span_userdanger("[src] blows apart!"))
+	visible_message(span_userdanger("[capitalize(declent_ru(NOMINATIVE))] разлетается на части!"))
 	var/turf/Tsec = get_turf(src)
 
 	new /obj/item/assembly/prox_sensor(Tsec)
@@ -926,10 +988,14 @@
 		..()
 
 
-/mob/living/simple_animal/bot/mulebot/proc/human_squish_check(src, atom/movable/AM)
-	if(!ishuman(AM))
+/mob/living/simple_animal/bot/mulebot/proc/on_entering(datum/source, atom/destination, atom/oldloc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
+	if(!isturf(destination))
 		return
-	RunOver(AM)
+
+	for(var/mob/living/carbon/human/mob in destination.contents)
+		RunOver(mob)
 
 
 #undef SIGH

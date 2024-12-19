@@ -14,6 +14,13 @@
 	. = ..()
 	ADD_TRAIT(src, TRAIT_SURGICAL, ROUNDSTART_TRAIT)
 
+/obj/item/retractor/laser
+	name = "Advanced Laser Retractors"
+	desc = "A retractor with a laser tip. This one looks to be the pinnacle of precision energy a surgery tools!"
+	icon_state = "retractor_laser"
+	item_state = "retractor_laser"
+	toolspeed = 0.4
+
 /obj/item/retractor/augment
 	desc = "Micro-mechanical manipulator for retracting stuff."
 	w_class = WEIGHT_CLASS_TINY
@@ -35,6 +42,13 @@
 /obj/item/hemostat/Initialize(mapload)
 	. = ..()
 	ADD_TRAIT(src, TRAIT_SURGICAL, ROUNDSTART_TRAIT)
+
+/obj/item/hemostat/laser
+	name = "Advanced Laser Hemostat"
+	desc = "A hemostat with a laser clamp. This one looks to be the pinnacle of precision energy a surgery tools!"
+	icon_state = "hemostat_laser"
+	item_state = "hemostat_laser"
+	toolspeed = 0.4
 
 /obj/item/hemostat/augment
 	desc = "Tiny servos power a pair of pincers to stop bleeding."
@@ -85,6 +99,13 @@
 	to_chat(viewers(user), pick(span_suicide("[user] is pressing [src] to [user.p_their()] temple and activating it! It looks like [user.p_theyre()] trying to commit suicide."),
 						span_suicide("[user] is pressing [src] to [user.p_their()] chest and activating it! It looks like [user.p_theyre()] trying to commit suicide.")))
 	return BRUTELOSS
+
+/obj/item/surgicaldrill/laser
+	name = "Advanced Laser Surgical Drill"
+	desc = "A surgery drill with a directed laser bit. This one looks to be the pinnacle of precision energy a surgery tools!"
+	icon_state = "drill_laser"
+	item_state = "drill_laser"
+	toolspeed = 0.4
 
 /obj/item/surgicaldrill/augment
 	desc = "Effectively a small power drill contained within your arm, edges dulled to prevent tissue damage. May or may not pierce the heavens."
@@ -142,20 +163,20 @@
 	hitsound = 'sound/weapons/sear.ogg'
 
 /obj/item/scalpel/laser/laser1 //lasers also count as catuarys
-	name = "laser scalpel"
-	desc = "A scalpel augmented with a directed laser.  This one looks basic and could be improved."
+	name = "Basic Laser Scalpel"
+	desc = "Скальпель, дополненный направленным лазером.  Может быть усовершенствован."
 	icon_state = "scalpel_laser1_on"
 	toolspeed = 0.8
 
 /obj/item/scalpel/laser/laser2
-	name = "laser scalpel"
-	desc = "A scalpel augmented with a directed laser. This one looks somewhat advanced."
+	name = "Improved Laser Scalpel"
+	desc = "Скальпель, дополненный направленным лазером. Усовершенствованная версия лазерного скальпеля."
 	icon_state = "scalpel_laser2_on"
 	toolspeed = 0.6
 
 /obj/item/scalpel/laser/laser3
-	name = "laser scalpel"
-	desc = "A scalpel augmented with a directed laser.  This one looks to be the pinnacle of precision energy cutlery!"
+	name = "Advanced Laser Scalpel"
+	desc = "Скальпель, дополненный направленным лазером. Высокоточная, модернизированная версия лазерного скальпеля."
 	icon_state = "scalpel_laser3_on"
 	toolspeed = 0.4
 
@@ -205,6 +226,14 @@
 /obj/item/circular_saw/Initialize(mapload)
 	. = ..()
 	ADD_TRAIT(src, TRAIT_SURGICAL, ROUNDSTART_TRAIT)
+
+/obj/item/circular_saw/laser
+	name = "Advanced Laser Circular Saw"
+	desc = "A saw with a circular laser disk. This one looks to be the pinnacle of precision energy a surgery tools!"
+	icon_state = "saw_laser"
+	item_state = "saw_laser"
+	origin_tech = "biotech=1;material=1"
+	toolspeed = 0.6
 
 /obj/item/circular_saw/augment
 	desc = "A small but very fast spinning saw. Edges dulled to prevent accidental cutting inside of the surgeon."
@@ -266,6 +295,13 @@
 /obj/item/bonesetter/Initialize(mapload)
 	. = ..()
 	ADD_TRAIT(src, TRAIT_SURGICAL, ROUNDSTART_TRAIT)
+
+/obj/item/bonesetter/laser
+	name = "Advanced Laser Bone Setter"
+	desc = "A bone settler with a laser teeth. This one looks to be the pinnacle of precision energy a surgery tools!"
+	icon_state = "bonesetter_laser"
+	item_state = "bonesetter_laser"
+	toolspeed = 0.4
 
 /obj/item/bonesetter/augment
 	toolspeed = 0.5

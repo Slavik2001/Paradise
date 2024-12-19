@@ -7,6 +7,7 @@
 	icon_aggro = "weaver"
 	icon_dead = "weaver_dead"
 	throw_message = "bounces harmlessly off the"
+	crusher_loot = /obj/item/crusher_trophy/fang
 	butcher_results = list(/obj/item/stack/ore/uranium = 2, /obj/item/stack/sheet/bone = 2, /obj/item/stack/sheet/sinew = 1, /obj/item/stack/sheet/animalhide/weaver_chitin = 3, /obj/item/reagent_containers/food/snacks/monstermeat/spiderleg = 2)
 	loot = list()
 	attacktext = "кусает" //can we revert all translation in our code?
@@ -27,19 +28,29 @@
 	deathmessage = "rolls over, frothing at the mouth before stilling."
 	var/poison_type = "spore"
 	var/poison_per_bite = 5
-	var/buttmad = 0
+	var/buttmad = FALSE
 	var/melee_damage_lower_angery0 = 13
 	var/melee_damage_upper_angery0 = 16
 	var/melee_damage_lower_angery1 = 15
 	var/melee_damage_upper_angery1 = 20
 	var/anger_move_to_delay = 8
 	var/anger_speed = 4
-	needs_gliding = FALSE
 
-/mob/living/simple_animal/hostile/asteroid/marrowweaver/adjustHealth(amount, updating_health = TRUE)
-	if(buttmad == 0)
+
+/mob/living/simple_animal/hostile/asteroid/marrowweaver/adjustHealth(
+	amount = 0,
+	updating_health = TRUE,
+	blocked = 0,
+	damage_type = BRUTE,
+	forced = FALSE,
+)
+	. = ..()
+	if(!. || amount <= 0)
+		return .
+
+	if(!buttmad)
 		if(health < maxHealth/3)
-			buttmad = 1
+			buttmad = TRUE
 			visible_message(span_danger("[src] chitters in rage, baring its fangs!"))
 			melee_damage_lower = melee_damage_lower_angery1
 			melee_damage_upper = melee_damage_upper_angery1
@@ -47,22 +58,20 @@
 			set_varspeed(anger_speed)
 			poison_type = "venom"
 			poison_per_bite = 6
-			needs_gliding = TRUE
-	else if(buttmad == 1)
+	else
 		if(health > maxHealth/2)
-			buttmad = 0
+			buttmad = FALSE
 			visible_message(span_notice("[src] seems to have calmed down, but not by much."))
 			melee_damage_lower = melee_damage_lower_angery0
 			melee_damage_upper = melee_damage_upper_angery0
 			poison_type = initial(poison_type)
 			set_varspeed(initial(speed))
 			poison_per_bite = initial(poison_per_bite)
-			needs_gliding = FALSE
-	..()
+
 
 /mob/living/simple_animal/hostile/asteroid/marrowweaver/AttackingTarget()
-	..()
-	if(isliving(target))
+	. = ..()
+	if(. && isliving(target))
 		var/mob/living/L = target
 		if(target.reagents)
 			L.reagents.add_reagent(poison_type, poison_per_bite)
@@ -128,14 +137,19 @@
 /mob/living/simple_animal/hostile/asteroid/marrowweaver/frost
 	name = "frostbite weaver"
 	desc = "A big, angry, venomous ice spider. It likes to snack on bone marrow. Its preferred food source is you."
+
 	icon_state = "weaver_ice"
 	icon_living = "weaver_ice"
 	icon_aggro = "weaver_ice"
 	icon_dead = "weaver_ice_dead"
+
 	melee_damage_lower = 10 //stronger venom, but weaker attack.
 	melee_damage_upper = 13
+
 	poison_type = "frostoil"
 	poison_per_bite = 5
+
+	crusher_loot = /obj/item/crusher_trophy/gland
 
 /mob/living/simple_animal/hostile/asteroid/marrowweaver/tendril
 	fromtendril = TRUE

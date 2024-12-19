@@ -28,6 +28,7 @@
 	del_on_death = 1
 	sentience_type = SENTIENCE_OTHER
 	footstep_type = FOOTSTEP_MOB_SHOE
+	AI_delay_max = 0 SECONDS
 
 ///////////////Sword and shield////////////
 
@@ -44,36 +45,24 @@
 	var/melee_block_chance = 20
 	var/ranged_block_chance = 35
 
-/mob/living/simple_animal/hostile/syndicate/melee/attackby(var/obj/item/O as obj, var/mob/user as mob, params)
-	user.changeNext_move(CLICK_CD_MELEE)
-	user.do_attack_animation(src)
-	if(O.force)
-		if(prob(melee_block_chance))
-			visible_message(span_boldwarning("[src] blocks [O] with its shield!"))
-		else
-			var/damage = O.force
-			if(O.damtype == STAMINA)
-				damage = 0
-			if(force_threshold && damage < force_threshold)
-				visible_message(span_boldwarning("[src] is unharmed by [O]!"))
-				return
-			adjustHealth(damage)
-			visible_message(span_boldwarning("[src] has been attacked with the [O] by [user]."))
-		playsound(loc, O.hitsound, 25, 1, -1)
-	else
-		to_chat(usr, span_warning("This weapon is ineffective, it does no damage."))
-		visible_message(span_warning("[user] gently taps [src] with the [O]."))
+
+/mob/living/simple_animal/hostile/syndicate/melee/attackby(obj/item/I, mob/user, params)
+	if(I.force && prob(melee_block_chance))
+		user.do_attack_animation(src)
+		visible_message(span_danger("[src] blocks [I] with its shield!"))
+		playsound(loc, 'sound/weapons/blade1.ogg', 50, TRUE, -1)
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
 
 
-/mob/living/simple_animal/hostile/syndicate/melee/bullet_act(var/obj/item/projectile/Proj)
+/mob/living/simple_animal/hostile/syndicate/melee/bullet_act(obj/item/projectile/Proj)
 	if(!Proj)
 		return
 	if(prob(ranged_block_chance))
-		visible_message("<span class='danger'>[src] blocks [Proj] with its shield!</span>")
-	else
-		if((Proj.damage_type == BRUTE || Proj.damage_type == BURN))
-			adjustHealth(Proj.damage)
-	return 0
+		visible_message(span_danger("[src] blocks [Proj] with its shield!"))
+		return FALSE
+	return ..()
+
 
 /mob/living/simple_animal/hostile/syndicate/melee/autogib
 	loot = list()//no loot, its gonna delete and gib.
@@ -186,11 +175,11 @@
 	else
 		scan_cycles++
 
-/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/AIShouldSleep(var/list/possible_targets)
-	FindTarget(possible_targets, 1)
+/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/AIShouldSleep(list/possible_targets)
+	FindTarget(possible_targets)
 	return FALSE
 
-/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/proc/raise_alert(var/reason)
+/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/proc/raise_alert(reason)
 	if(istype(depotarea) && (!raised_alert || seen_revived_enemy) && !depotarea.used_self_destruct)
 		raised_alert = TRUE
 		say("Intruder!")
@@ -254,11 +243,16 @@
 	icon_state = "syndicate_stormtrooper_sword"
 	icon_living = "syndicate_stormtrooper_sword"
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	maxHealth = 200
 	health = 200
 	melee_block_chance = 40
 	alert_on_shield_breach = TRUE
+
+/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/armory/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/armory/Initialize(mapload)
 	. = ..()
@@ -293,28 +287,37 @@
 /mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/space
 	name = "Syndicate Backup"
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	icon_state = "syndicate_space_sword"
 	icon_living = "syndicate_space_sword"
 	speed = 1
 	wander = 0
 	alert_on_spacing = FALSE
 
-/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/space/Process_Spacemove(movement_dir = NONE)
-	return TRUE
+/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/space/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
+/mob/living/simple_animal/hostile/syndicate/melee/autogib/depot/space/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE
 
 
 /mob/living/simple_animal/hostile/syndicate/melee/space
 	name = "Syndicate Commando"
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	icon_state = "syndicate_space_sword"
 	icon_living = "syndicate_space_sword"
 	speed = 1
 	loot = list(/obj/effect/mob_spawn/human/corpse/syndicatecommando, /obj/item/melee/energy/sword/saber/red, /obj/item/shield/energy/syndie)
 
-/mob/living/simple_animal/hostile/syndicate/melee/space/Process_Spacemove(movement_dir = NONE)
+/mob/living/simple_animal/hostile/syndicate/melee/space/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
+
+/mob/living/simple_animal/hostile/syndicate/melee/space/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE
 
 /mob/living/simple_animal/hostile/syndicate/ranged
@@ -333,11 +336,16 @@
 	icon_living = "syndicate_space_smg"
 	name = "Syndicate Commando"
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	speed = 1
 	loot = list(/obj/effect/mob_spawn/human/corpse/syndicatecommando, /obj/item/gun/projectile/automatic/c20r)
 
-/mob/living/simple_animal/hostile/syndicate/ranged/space/Process_Spacemove(movement_dir = NONE)
+/mob/living/simple_animal/hostile/syndicate/ranged/space/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
+
+/mob/living/simple_animal/hostile/syndicate/ranged/space/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE
 
 /mob/living/simple_animal/hostile/syndicate/ranged/space/autogib
@@ -360,14 +368,20 @@
 	attack_sound = 'sound/weapons/bladeslice.ogg'
 	faction = list("syndicate")
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	mob_size = MOB_SIZE_TINY
 	bubble_icon = "syndibot"
 	gold_core_spawnable = HOSTILE_SPAWN
 	del_on_death = 1
 	deathmessage = "is smashed into pieces!"
+	AI_delay_max = 0 SECONDS
 
 /mob/living/simple_animal/hostile/viscerator/Initialize(mapload)
 	. = ..()
 	AddComponent(/datum/component/swarming)
 	AddElement(/datum/element/simple_flying)
+
+/mob/living/simple_animal/hostile/viscerator/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)

@@ -1,7 +1,15 @@
 
 /mob/living/simple_animal/bot/ed209/syndicate
 	name = "Syndicate Sentry Bot"
-	desc = "A syndicate security bot."
+	desc = "Охранный робот Синдиката."
+	ru_names = list(
+		NOMINATIVE = "робот-часовой Синдиката",
+		GENITIVE = "робота-часового Синдиката",
+		DATIVE = "роботу-часовому Синдиката",
+		ACCUSATIVE = "робота-часового Синдиката",
+		INSTRUMENTAL = "роботом-часовым Синдиката",
+		PREPOSITIONAL = "роботе-часовом Синдиката",
+	)
 	model = "Guardian"
 	icon = 'icons/obj/mecha/mecha.dmi'
 	icon_state = "darkgygax"
@@ -17,7 +25,7 @@
 	shoot_sound = 'sound/weapons/wave.ogg'
 	anchored = TRUE
 	window_id = "syndiebot"
-	window_name = "Syndicate Bot Interface"
+	window_name = "Интерфейс Часового Робота Синдиката"
 	var/turf/saved_turf
 	var/stepsound = 'sound/mecha/mechstep.ogg'
 	var/area/syndicate_depot/core/depotarea
@@ -26,8 +34,8 @@
 	var/turf/spawn_turf
 
 
-/mob/living/simple_animal/bot/ed209/syndicate/New()
-	..()
+/mob/living/simple_animal/bot/ed209/syndicate/Initialize(mapload)
+	. = ..()
 	set_weapon()
 	update_icon()
 	spawn_turf = get_turf(src)
@@ -53,8 +61,8 @@
 	update_icon()
 
 
-/mob/living/simple_animal/bot/ed209/syndicate/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	to_chat(user, span_warning("[src] has no accessible control panel!"))
+/mob/living/simple_animal/bot/ed209/syndicate/ui_interact(mob/user, datum/tgui/ui = null)
+	balloon_alert(user, "панель управления отсутствует!")
 	return
 
 
@@ -79,7 +87,7 @@
 
 /mob/living/simple_animal/bot/ed209/syndicate/emag_act(mob/user)
 	if(user)
-		to_chat(user, span_warning("[src] has no card reader slot!"))
+		balloon_alert(user, "сканер ID-карт отсутствует!")
 
 
 /mob/living/simple_animal/bot/ed209/syndicate/ed209_ai()
@@ -87,21 +95,21 @@
 	if(saved_turf && current_turf != saved_turf)
 		playsound(loc, stepsound, 40, TRUE)
 	if(spawn_turf && !atoms_share_level(src, spawn_turf))
-		raise_alert("[src] lost in space.")
+		raise_alert("[capitalize(declent_ru(NOMINATIVE))] потерялся в пространстве.")
 		raised_alert = FALSE
-		raise_alert("[src] activated self-destruct.")
+		raise_alert("[capitalize(declent_ru(NOMINATIVE))] активировал протокол само-уничтожения.")
 		qdel(src)
 	saved_turf = current_turf
 	switch(mode)
 		if(BOT_IDLE)
-			walk_to(src,0)
+			SSmove_manager.stop_looping(src)
 			set_path(null)
 			look_for_perp()
 			if(!mode && auto_patrol)
 				mode = BOT_START_PATROL
 		if(BOT_HUNT)
 			if(frustration >= 8)
-				walk_to(src,0)
+				SSmove_manager.stop_looping(src)
 				set_path(null)
 				back_to_idle()
 			if(target)
@@ -111,8 +119,7 @@
 						return
 				shootAt(target)
 				var/turf/olddist = get_dist(src, target)
-				glide_for(BOT_STEP_DELAY)
-				walk_to(src, target,1,4)
+				SSmove_manager.move_to(src, target, 1, BOT_STEP_DELAY)
 				if((get_dist(src, target)) >= (olddist))
 					frustration++
 				else
@@ -183,14 +190,14 @@
 	if(!QDELETED(src))
 		if(depotarea)
 			depotarea.list_remove(src, depotarea.guard_list)
-		walk_to(src,0)
-		visible_message(span_userdanger("[src] blows apart!"))
+		SSmove_manager.stop_looping(src)
+		visible_message(span_userdanger("[capitalize(declent_ru(NOMINATIVE))] разлетается на части!"))
 		do_sparks(3, 1, src)
 		new /obj/effect/decal/cleanable/blood/oil(loc)
 		var/obj/structure/mecha_wreckage/gygax/dark/wreck = new /obj/structure/mecha_wreckage/gygax/dark(loc)
 		wreck.name = "sentry bot wreckage"
 
-		raise_alert("[src] destroyed.")
+		raise_alert("[capitalize(declent_ru(NOMINATIVE))] уничтожен.")
 		qdel(src)
 
 
@@ -220,7 +227,7 @@
 	return
 
 
-/mob/living/simple_animal/bot/ed209/syndicate/Process_Spacemove(movement_dir = NONE)
+/mob/living/simple_animal/bot/ed209/syndicate/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE
 
 

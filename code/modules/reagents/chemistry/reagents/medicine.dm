@@ -140,7 +140,7 @@
 
 	if(method == REAGENT_INGEST && iscarbon(M))
 		var/mob/living/carbon/C = M
-		if(C.get_blood_id() == id)
+		if(C.get_blood_id() == id && !HAS_TRAIT(C, TRAIT_NO_BLOOD_RESTORE))
 			C.blood_volume = min(C.blood_volume + round(volume, 0.1), BLOOD_VOLUME_NORMAL)
 			C.reagents.del_reagent(id)
 
@@ -150,8 +150,8 @@
 		update_flags |= M.adjustCloneLoss(-1, FALSE)
 		update_flags |= M.adjustOxyLoss(-2, FALSE)
 		update_flags |= M.adjustToxLoss(-0.5, FALSE)
-		update_flags |= M.adjustBruteLoss(-2, FALSE)
-		update_flags |= M.adjustFireLoss(-4, FALSE)
+		update_flags |= M.adjustBruteLoss(-2, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-4, FALSE, affect_robotic = FALSE)
 		if(ishuman(M))
 			var/mob/living/carbon/human/H = M
 			var/obj/item/organ/external/head/head = H.get_organ(BODY_ZONE_HEAD)
@@ -180,8 +180,8 @@
 /datum/reagent/medicine/rezadone/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
 	update_flags |= M.adjustCloneLoss(-5, FALSE) //What? We just set cloneloss to 0. Why? Simple; this is so external organs properly unmutate. // why don't you fix the code instead // i fix the code dont worry
-	update_flags |= M.adjustBruteLoss(-1, FALSE)
-	update_flags |= M.adjustFireLoss(-1, FALSE)
+	update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
 		var/obj/item/organ/external/head/head = H.get_organ(BODY_ZONE_HEAD)
@@ -238,18 +238,16 @@
 
 /datum/reagent/medicine/silver_sulfadiazine/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustFireLoss(-1, FALSE)
+	update_flags |= M.heal_damage_type(1, BURN, updating_health = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/silver_sulfadiazine/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume, show_message = 1)
 	if(iscarbon(M))
 		if(method == REAGENT_TOUCH)
-			M.adjustFireLoss(-volume)
-			if(show_message)
+			if(M.heal_damage_type(volume, BURN) && show_message)
 				to_chat(M, "<span class='notice'>The silver sulfadiazine soothes your burns.</span>")
 		if(method == REAGENT_INGEST)
-			M.adjustToxLoss(0.5*volume)
-			if(show_message)
+			if(M.apply_damage(0.5 * volume, TOX) && show_message)
 				to_chat(M, "<span class='warning'>You feel sick...</span>")
 	..()
 
@@ -265,22 +263,16 @@
 
 /datum/reagent/medicine/styptic_powder/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-1, FALSE)
+	update_flags |= M.heal_damage_type(1, BRUTE, updating_health = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/styptic_powder/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume, show_message = 1)
 	if(iscarbon(M))
 		if(method == REAGENT_TOUCH)
-			M.adjustBruteLoss(-volume)
-			var/has_pain = TRUE
-			if(ishuman(M))
-				var/mob/living/carbon/human/H = M
-				has_pain = H.has_pain()
-			if(show_message && has_pain)
+			if(M.heal_damage_type(volume, BRUTE) && show_message && M.has_pain())
 				to_chat(M, "<span class='notice'>The styptic powder stings like hell as it closes some of your wounds!</span>")
 		else if(method == REAGENT_INGEST)
-			M.adjustToxLoss(0.5*volume)
-			if(show_message)
+			if(M.apply_damage(0.5 * volume, TOX) && show_message)
 				to_chat(M, "<span class='warning'>You feel gross!</span>")
 	..()
 
@@ -297,13 +289,13 @@
 /datum/reagent/medicine/salglu_solution/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
 	if(prob(33))
-		update_flags |= M.adjustBruteLoss(-1, FALSE)
-		update_flags |= M.adjustFireLoss(-1, FALSE)
+		update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	if(ishuman(M) && prob(33))
 		var/mob/living/carbon/human/H = M
-		if(!(NO_BLOOD in H.dna.species.species_traits))//do not restore blood on things with no blood by nature.
-			if(H.blood_volume < BLOOD_VOLUME_NORMAL)
-				H.blood_volume += 1
+		//do not restore blood on things with no blood by nature.
+		if(!HAS_TRAIT(H, TRAIT_NO_BLOOD) && !HAS_TRAIT(H, TRAIT_NO_BLOOD_RESTORE) && H.blood_volume < BLOOD_VOLUME_NORMAL)
+			H.blood_volume += 1
 	return ..() | update_flags
 
 /datum/reagent/medicine/synthflesh
@@ -317,8 +309,8 @@
 /datum/reagent/medicine/synthflesh/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume, show_message = 1)
 	if(iscarbon(M))
 		if(method == REAGENT_TOUCH)
-			M.adjustBruteLoss(-1.5*volume)
-			M.adjustFireLoss(-1.5*volume)
+			var/heal_amount = 1.5 * volume
+			M.heal_overall_damage(heal_amount, heal_amount)
 			if(show_message)
 				to_chat(M, "<span class='notice'>The synthetic flesh integrates itself into your wounds, healing you.</span>")
 	..()
@@ -341,23 +333,25 @@
 /datum/reagent/medicine/ab_stimulant/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
 	to_chat(M, "<span class='notice'>Вы чуствуете чесотку.</span>")
-	update_flags |= M.adjustFireLoss(-1.5, FALSE)
+	update_flags |= M.adjustFireLoss(-1.5, FALSE, affect_robotic = FALSE)
 	if(volume > 1.9)
-		if((HUSK) in M.mutations)
+		if(HAS_TRAIT(M, TRAIT_HUSK))
 			var/mob/living/carbon/human/H = M
 			H.cure_husk()
 			to_chat(M, "<span class='warning'>Ваша обугленная кожа отпадает!</span>")
 	return ..() | update_flags
 
 /datum/reagent/medicine/ab_stimulant/overdose_process(mob/living/M, severity)
-	var/update_flags = STATUS_UPDATE_NONE
 	to_chat(M, "<span class='warning'>Ваша кожа лопается!</span>")
-	M.adjustBruteLoss(4)
-	M.adjustFireLoss(-6)
-	if(prob(25) && !((NO_BLOOD) in M.mutations))
+	var/update = NONE
+	update |= M.apply_damage(4, BRUTE, spread_damage = TRUE, updating_health = FALSE)
+	update |= M.heal_damage_type(6, BURN, updating_health = FALSE)
+	if(update)
+		M.updatehealth()
+	if(prob(25) && ishuman(M) && !HAS_TRAIT(M, TRAIT_NO_BLOOD))
 		var/mob/living/carbon/human/H = M
 		H.bleed(20)
-	return ..() | update_flags
+	return ..()
 
 /datum/reagent/medicine/charcoal
 	name = "Charcoal"
@@ -393,13 +387,15 @@
 	var/update_flags = STATUS_UPDATE_NONE
 	update_flags |= M.adjustToxLoss(-0.5, FALSE)
 	update_flags |= M.adjustOxyLoss(-0.5, FALSE)
-	update_flags |= M.adjustBruteLoss(-1, FALSE)
-	update_flags |= M.adjustFireLoss(-1, FALSE)
+	update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	if(prob(50))
 		M.AdjustLoseBreath(-2 SECONDS)
 	return ..() | update_flags
 
 /datum/reagent/medicine/omnizine/overdose_process(mob/living/M, severity)
+	if(HAS_TRAIT(M, TRAIT_BADASS))
+		return
 	var/list/overdose_info = ..()
 	var/effect = overdose_info[REAGENT_OVERDOSE_EFFECT]
 	var/update_flags = overdose_info[REAGENT_OVERDOSE_FLAGS]
@@ -488,7 +484,7 @@
 	if(prob(33))
 		if(ishuman(M))
 			var/mob/living/carbon/human/human = M
-			human.take_overall_damage(0.5, 0.5, FALSE, affect_robotic = FALSE)
+			human.take_overall_damage(0.5, 0.5, updating_health = FALSE, affect_robotic = FALSE)
 		else
 			update_flags |= M.adjustBruteLoss(0.5, FALSE)
 			update_flags |= M.adjustFireLoss(0.5, FALSE)
@@ -510,7 +506,7 @@
 /datum/reagent/medicine/sal_acid/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
 	if(prob(55))
-		update_flags |= M.adjustBruteLoss(-1, FALSE)
+		update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
 	if(M.bodytemperature > BODYTEMP_NORMAL)
 		M.adjust_bodytemperature(-10)
 	return ..() | update_flags
@@ -527,7 +523,7 @@
 /datum/reagent/medicine/menthol/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
 	if(prob(55))
-		update_flags |= M.adjustFireLoss(-1, FALSE)
+		update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	if(M.bodytemperature > 280)
 		M.adjust_bodytemperature(-10)
 	return ..() | update_flags
@@ -565,8 +561,8 @@
 	if(volume >= 4)
 		M.LoseBreath(12 SECONDS)
 	if(prob(33))
-		update_flags |= M.adjustBruteLoss(-0.5, FALSE)
-		update_flags |= M.adjustFireLoss(-0.5, FALSE)
+		update_flags |= M.adjustBruteLoss(-0.5, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-0.5, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/ephedrine
@@ -595,8 +591,8 @@
 		update_flags |= M.adjustOxyLoss(-1, FALSE)
 	if(M.health < 0 || M.health > 0 && prob(33))
 		update_flags |= M.adjustToxLoss(-1, FALSE)
-		update_flags |= M.adjustBruteLoss(-1, FALSE)
-		update_flags |= M.adjustFireLoss(-1, FALSE)
+		update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/ephedrine/overdose_process(mob/living/M, severity)
@@ -736,8 +732,8 @@
 		update_flags |= M.adjustOxyLoss(-5, FALSE)
 	if(M.health < -25)
 		update_flags |= M.adjustToxLoss(-1, FALSE)
-		update_flags |= M.adjustBruteLoss(-1.5, FALSE)
-		update_flags |= M.adjustFireLoss(-1.5, FALSE)
+		update_flags |= M.adjustBruteLoss(-1.5, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-1.5, FALSE, affect_robotic = FALSE)
 	else if(M.health > -60)
 		update_flags |= M.adjustToxLoss(1, FALSE)
 	M.reagents.remove_reagent("sarin", 20)
@@ -773,8 +769,8 @@
 		update_flags |= M.adjustOxyLoss(-5, FALSE)
 	if(M.health < -10 && M.health > -65)
 		update_flags |= M.adjustToxLoss(-0.5, FALSE)
-		update_flags |= M.adjustBruteLoss(-0.5, FALSE)
-		update_flags |= M.adjustFireLoss(-0.5, FALSE)
+		update_flags |= M.adjustBruteLoss(-0.5, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-0.5, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/epinephrine/overdose_process(mob/living/M, severity)
@@ -842,14 +838,15 @@
 				if(!M.ghost_can_reenter())
 					M.visible_message("<span class='warning'>[M] twitches slightly, but is otherwise unresponsive!</span>")
 					return
-				if(!M.suiciding && !(NOCLONE in M.mutations) && (!M.mind || M.mind?.is_revivable()))
+				if(!M.suiciding && !HAS_TRAIT(M, TRAIT_NO_CLONE) && (!M.mind || M.mind?.is_revivable()))
 					var/time_dead = world.time - M.timeofdeath
 					M.visible_message("<span class='warning'>[M] seems to rise from the dead!</span>")
-					M.adjustCloneLoss(50)
-					M.setOxyLoss(0)
-					M.adjustBruteLoss(rand(0, 15))
-					M.adjustToxLoss(rand(0, 15))
-					M.adjustFireLoss(rand(0, 15))
+					var/update = NONE
+					update |= M.take_overall_damage(rand(0, 15), rand(0, 15), updating_health = FALSE)
+					update |= M.apply_damages(tox = rand(0, 15), clone = 50, updating_health = FALSE)
+					update |= M.setOxyLoss(0, updating_health = FALSE)
+					if(update)
+						M.updatehealth()
 					if(ishuman(M))
 						var/mob/living/carbon/human/H = M
 						var/necrosis_prob = 40 * min((20 MINUTES), max((time_dead - (1 MINUTES)), 0)) / ((20 MINUTES) - (1 MINUTES))
@@ -900,21 +897,24 @@
 	color = "#5096C8"
 	taste_description = "cleanliness"
 
+
 /datum/reagent/medicine/mutadone/on_mob_life(mob/living/carbon/human/M)
 	if(M.mind && M.mind.assigned_role == "Cluwne") // HUNKE
-		..()
-		return
+		return ..()
+
 	M.SetJitter(0)
-	var/needs_update = M.mutations.len > 0
 
-	if(needs_update)
-		for(var/block = 1; block<=DNA_SE_LENGTH; block++)
-			if(!LAZYIN(M.dna.default_blocks, block))
-				M.force_gene_block(block, FALSE)
+	if(!ishuman(M))
+		return ..()
 
-		M.dna.struc_enzymes = M.dna.struc_enzymes_original
+	for(var/datum/dna/gene/gene as anything in GLOB.dna_genes)
+		if(!LAZYIN(M.dna.default_blocks, gene.block))
+			M.force_gene_block(gene.block, FALSE)
+
+	M.dna.struc_enzymes = M.dna.struc_enzymes_original
 
 	return ..()
+
 
 /datum/reagent/medicine/antihol
 	name = "Antihol"
@@ -947,8 +947,8 @@
 	if(volume > 5)
 		update_flags |= M.adjustOxyLoss(-2.5, FALSE)
 		update_flags |= M.adjustToxLoss(-2.5, FALSE)
-		update_flags |= M.adjustBruteLoss(-5, FALSE)
-		update_flags |= M.adjustFireLoss(-5, FALSE)
+		update_flags |= M.adjustBruteLoss(-5, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-5, FALSE, affect_robotic = FALSE)
 		update_flags |= M.setStaminaLoss(0, FALSE)
 		M.SetSlowed(0)
 		M.AdjustDizzy(-20 SECONDS)
@@ -957,11 +957,11 @@
 		M.SetSleeping(0)
 		if(!absorption_applied)
 			absorption_applied = TRUE
-			M.add_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, PARALYZE, KNOCKDOWN))
+			M.add_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, STAMCRIT, PARALYZE, KNOCKDOWN))
 	else
 		if(absorption_applied)
 			absorption_applied = FALSE
-			M.remove_status_effect_absorption(id, effect_type = list(STUN, WEAKEN, PARALYZE, KNOCKDOWN))
+			M.remove_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, STAMCRIT, PARALYZE, KNOCKDOWN))
 		update_flags |= M.adjustToxLoss(2, FALSE)
 		update_flags |= M.adjustBruteLoss(1, FALSE)
 		if(prob(10))
@@ -973,7 +973,7 @@
 /datum/reagent/medicine/stimulants/on_mob_delete(mob/living/M)
 	. = ..()
 	if(absorption_applied)	// somehow???
-		M.remove_status_effect_absorption(id, effect_type = list(STUN, WEAKEN, PARALYZE, KNOCKDOWN))
+		M.remove_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, STAMCRIT, PARALYZE, KNOCKDOWN))
 
 
 /datum/reagent/medicine/stimulative_agent
@@ -990,8 +990,8 @@
 	var/update_flags = STATUS_UPDATE_NONE
 	if(user.health < 50 && user.health > 0)
 		update_flags |= user.adjustOxyLoss(-2, FALSE)
-		update_flags |= user.adjustBruteLoss(-2, FALSE)
-		update_flags |= user.adjustFireLoss(-2, FALSE)
+		update_flags |= user.adjustBruteLoss(-2, FALSE, affect_robotic = FALSE)
+		update_flags |= user.adjustFireLoss(-2, FALSE, affect_robotic = FALSE)
 	user.AdjustParalysis(-6 SECONDS)
 	user.AdjustStunned(-6 SECONDS)
 	user.AdjustWeakened(-6 SECONDS)
@@ -1051,20 +1051,20 @@
 	var/update_flags = overdose_info[REAGENT_OVERDOSE_FLAGS]
 	if(severity == 1)
 		if(effect <= 2)
-			M.vomit(0, TRUE, FALSE)
+			M.vomit(0, VOMIT_BLOOD, 0 SECONDS)
 			M.blood_volume = max(M.blood_volume - rand(5, 10), 0)
 		else if(effect <= 4)
-			M.vomit(0, TRUE, FALSE)
+			M.vomit(0, VOMIT_BLOOD, 0 SECONDS)
 			M.blood_volume = max(M.blood_volume - rand(1, 2), 0)
 	else if(severity == 2)
 		if(effect <= 2)
 			M.visible_message("<span class='warning'>[M] is bleeding from [M.p_their()] very pores!</span>")
 			M.bleed(rand(10, 20))
 		else if(effect <= 4)
-			M.vomit(0, TRUE, FALSE)
+			M.vomit(0, VOMIT_BLOOD, 0 SECONDS)
 			M.blood_volume = max(M.blood_volume - rand(5, 10), 0)
 		else if(effect <= 8)
-			M.vomit(0, TRUE, FALSE)
+			M.vomit(0, VOMIT_BLOOD, 0 SECONDS)
 			M.blood_volume = max(M.blood_volume - rand(1, 2), 0)
 	return list(effect, update_flags)
 
@@ -1099,6 +1099,7 @@
 	reagent_state = LIQUID
 	color = "#FFDCFF"
 	taste_description = "stability"
+	harmless = FALSE
 	var/list/drug_list = list("crank","methamphetamine","space_drugs","psilocybin","ephedrine","epinephrine","stimulants","bath_salts","lsd","thc")
 
 /datum/reagent/medicine/haloperidol/on_mob_life(mob/living/M)
@@ -1153,8 +1154,8 @@
 
 /datum/reagent/medicine/syndicate_nanites/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-2.5, FALSE) //A ton of healing - this is a 50 telecrystal investment.
-	update_flags |= M.adjustFireLoss(-2.5, FALSE)
+	update_flags |= M.adjustBruteLoss(-2.5, FALSE, affect_robotic = FALSE) //A ton of healing - this is a 50 telecrystal investment.
+	update_flags |= M.adjustFireLoss(-2.5, FALSE, affect_robotic = FALSE)
 	update_flags |= M.adjustOxyLoss(-7.5, FALSE)
 	update_flags |= M.adjustToxLoss(-2.5, FALSE)
 	update_flags |= M.adjustBrainLoss(-7.5, FALSE)
@@ -1182,8 +1183,8 @@
 	var/update_flags = STATUS_UPDATE_NONE
 	update_flags |= M.adjustToxLoss(-0.25, FALSE)
 	update_flags |= M.adjustOxyLoss(-0.25, FALSE)
-	update_flags |= M.adjustBruteLoss(-0.25, FALSE)
-	update_flags |= M.adjustFireLoss(-0.25, FALSE)
+	update_flags |= M.adjustBruteLoss(-0.25, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-0.25, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/omnizine_diluted/overdose_process(mob/living/M, severity)
@@ -1274,7 +1275,7 @@
 
 /datum/reagent/medicine/bicaridine/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-1, FALSE)
+	update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/bicaridine/overdose_process(mob/living/M)
@@ -1294,7 +1295,7 @@
 
 /datum/reagent/medicine/kelotane/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustFireLoss(-1, FALSE)
+	update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/kelotane/overdose_process(mob/living/M)
@@ -1314,8 +1315,8 @@
 
 /datum/reagent/medicine/earthsblood/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-1.5, FALSE)
-	update_flags |= M.adjustFireLoss(-1.5, FALSE)
+	update_flags |= M.adjustBruteLoss(-1.5, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-1.5, FALSE, affect_robotic = FALSE)
 	update_flags |= M.adjustOxyLoss(-7.5, FALSE)
 	update_flags |= M.adjustToxLoss(-1.5, FALSE)
 	update_flags |= M.adjustBrainLoss(1, FALSE) //This does, after all, come from ambrosia, and the most powerful ambrosia in existence, at that!
@@ -1343,8 +1344,8 @@
 
 /datum/reagent/medicine/syndiezine/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-0.5, FALSE)
-	update_flags |= M.adjustFireLoss(-0.5, FALSE)
+	update_flags |= M.adjustBruteLoss(-0.5, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-0.5, FALSE, affect_robotic = FALSE)
 	update_flags |= M.adjustOxyLoss(-4.5, FALSE)
 	update_flags |= M.adjustToxLoss(-0.5, FALSE)
 	update_flags |= M.adjustCloneLoss(-0.5, FALSE)
@@ -1426,15 +1427,15 @@
 					var/mob/living/carbon/human/H = M
 					for(var/obj/item/organ/internal/I as anything in M.internal_organs) // 56 healing to all internal organs.
 						I.heal_internal_damage(8)
-					if(H.blood_volume < BLOOD_VOLUME_NORMAL * 0.9)// If below 90% blood, regenerate 210 units total
+					if(!HAS_TRAIT(H, TRAIT_NO_BLOOD_RESTORE) && H.blood_volume < BLOOD_VOLUME_NORMAL * 0.9)// If below 90% blood, regenerate 210 units total
 						H.blood_volume += 30
 					for(var/datum/disease/critical/heart_failure/HF in H.diseases)
 						HF.cure() //Won't fix a stopped heart, but it will sure fix a critical one. Shock is not fixed as healing will fix it
 				if(M.health < 40)
 					update_flags |= M.adjustOxyLoss(-6, FALSE)
 					update_flags |= M.adjustToxLoss(-2, FALSE)
-					update_flags |= M.adjustBruteLoss(-4, FALSE)
-					update_flags |= M.adjustFireLoss(-4, FALSE)
+					update_flags |= M.adjustBruteLoss(-4, FALSE, affect_robotic = FALSE)
+					update_flags |= M.adjustFireLoss(-4, FALSE, affect_robotic = FALSE)
 				else
 					if(prob(50))
 						to_chat(M, span_warning("Your skin feels like it is ripping apart and your veins are on fire!")) //It is experimental and does cause scars, after all.
@@ -1453,8 +1454,8 @@
 
 /datum/reagent/medicine/lavaland_extract/on_mob_life(mob/living/carbon/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-2.5, FALSE)
-	update_flags |= M.adjustFireLoss(-2.5, FALSE)
+	update_flags |= M.adjustBruteLoss(-2.5, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-2.5, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/lavaland_extract/overdose_process(mob/living/M) // This WILL be brutal
@@ -1478,8 +1479,8 @@
 
 /datum/reagent/medicine/zessulblood/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
-	update_flags |= M.adjustBruteLoss(-1, FALSE)
-	update_flags |= M.adjustFireLoss(-1, FALSE)
+	update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
 	return ..() | update_flags
 
 /datum/reagent/medicine/pure_plasma   //unique chemical for plasmaman
@@ -1501,8 +1502,8 @@
 			normal_temperature = BODYTEMP_NORMAL
 		if(M.bodytemperature < normal_temperature)
 			M.adjust_bodytemperature(5 * TEMPERATURE_DAMAGE_COEFFICIENT)
-		update_flags |= M.adjustBruteLoss(-0.25, FALSE)
-		update_flags |= M.adjustFireLoss(-0.25, FALSE)
+		update_flags |= M.adjustBruteLoss(-0.25, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-0.25, FALSE, affect_robotic = FALSE)
 	else
 		update_flags |= M.adjustToxLoss(4, FALSE)
 	return ..() | update_flags
@@ -1517,16 +1518,15 @@
 	can_synth = FALSE
 
 /datum/reagent/medicine/grubjuice/on_mob_life(mob/living/carbon/M) //huge heal for huge liver problems
-	M.heal_overall_damage(4,4, FALSE)
-	..()
-	return TRUE
+	var/update_flags = STATUS_UPDATE_NONE
+	update_flags |= M.heal_overall_damage(4, 4)
+	return ..() | update_flags
 
 /datum/reagent/medicine/grubjuice/overdose_process(mob/living/M)
-	M.adjustBruteLoss(3, 0, FALSE)
-	M.adjustFireLoss(3, 0, FALSE)
-	M.adjustToxLoss(5, 0)
-	..()
-	return TRUE
+	var/update_flags = STATUS_UPDATE_NONE
+	update_flags |= M.take_overall_damage(3, 3, updating_health = FALSE)
+	update_flags |= M.apply_damage(5, TOX, updating_health = FALSE)
+	return list(0, update_flags)
 
 /datum/reagent/medicine/adrenaline
 	name = "adrenaline"
@@ -1539,16 +1539,21 @@
 	harmless = TRUE
 	can_synth = FALSE
 
+
 /datum/reagent/medicine/adrenaline/on_mob_life(mob/living/M)
 	var/update_flags = STATUS_UPDATE_NONE
 	update_flags |= M.setStaminaLoss(0, FALSE)
-	M.add_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, PARALYZE, KNOCKDOWN))
-
 	return ..() | update_flags
+
+
+/datum/reagent/medicine/adrenaline/on_mob_add(mob/living/M)
+	. = ..()
+	M.add_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, STAMCRIT, PARALYZE, KNOCKDOWN))
+
 
 /datum/reagent/medicine/adrenaline/on_mob_delete(mob/living/M)
 	. = ..()
-	M.remove_status_effect_absorption(id, effect_type = list(STUN, WEAKEN, PARALYZE, KNOCKDOWN))
+	M.remove_status_effect_absorption(source = id, effect_type = list(STUN, WEAKEN, STAMCRIT, PARALYZE, KNOCKDOWN))
 
 
 /datum/reagent/medicine/adrenaline/overdose_process(mob/living/M, severity)
@@ -1556,3 +1561,60 @@
 	update_flags |= M.adjustToxLoss(10, FALSE)
 
 	return list(0, update_flags)
+
+/datum/reagent/medicine/adv_lava_extract
+	name = "Modified Lavaland Extract"
+	id = "adv_lava_extract"
+	description = "A very expensive medicine that aids with pumping blood around the body, and prevents the heart from slowing down, healing patient in process. Overdose will cause heart attacks."
+	reagent_state = LIQUID
+	color = "#F5F5F5"
+	overdose_threshold = 10
+	harmless = FALSE
+	taste_description = "bad idea"
+	can_synth = FALSE
+
+/atom/movable/screen/alert/adv_lava_extract
+	name = "Strong Heartbeat"
+	desc = "Your heart beats with great force! Be carefull not to cause heart attack."
+	icon_state = "penthrite"
+
+/datum/reagent/medicine/adv_lava_extract/on_mob_add(mob/living/carbon/human/user)
+	. = ..()
+	user.throw_alert("penthrite", /atom/movable/screen/alert/adv_lava_extract)
+
+/datum/reagent/medicine/adv_lava_extract/on_mob_life(mob/living/M)
+	var/update_flags = STATUS_UPDATE_NONE
+	update_flags |= M.adjustOxyLoss(-3.5, FALSE)
+	update_flags |= M.adjustToxLoss(-2.5, FALSE)
+	update_flags |= M.adjustBruteLoss(-3, FALSE, affect_robotic = FALSE)
+	update_flags |= M.adjustFireLoss(-3, FALSE, affect_robotic = FALSE)
+	if(prob(50))
+		M.AdjustLoseBreath(-2 SECONDS)
+	M.SetConfused(0)
+	M.SetSleeping(0)
+	if(M.getFireLoss() > 35)
+		update_flags |= M.adjustFireLoss(-4, FALSE, affect_robotic = FALSE)
+	if(M.health < 0)
+		update_flags |= M.adjustToxLoss(-1, FALSE)
+		update_flags |= M.adjustBruteLoss(-1, FALSE, affect_robotic = FALSE)
+		update_flags |= M.adjustFireLoss(-1, FALSE, affect_robotic = FALSE)
+	return ..() | update_flags
+
+/datum/reagent/medicine/adv_lava_extract/overdose_process(mob/living/M, severity)
+	var/update_flags = STATUS_UPDATE_NONE
+	update_flags |= M.adjustOxyLoss(4, FALSE)
+	update_flags |= M.adjustToxLoss(3, FALSE)
+	update_flags |= M.adjustBruteLoss(5, FALSE)
+	update_flags |= M.adjustFireLoss(5, FALSE)
+	update_flags |= M.adjustStaminaLoss(10, FALSE)
+	if(M.getFireLoss())
+		update_flags |= M.adjustFireLoss(5, FALSE) //It only makes existing burns worse
+	if(ishuman(M) && prob(7))
+		var/mob/living/carbon/human/H = M
+		if(!H.undergoing_cardiac_arrest())
+			H.set_heartattack(TRUE)
+	return ..() | update_flags
+
+/datum/reagent/medicine/adv_lava_extract/on_mob_delete(mob/living/carbon/human/user)
+	. = ..()
+	user.clear_alert("penthrite")

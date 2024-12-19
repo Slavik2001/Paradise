@@ -18,12 +18,17 @@
 			            ACCESS_RESEARCH, ACCESS_ENGINE, ACCESS_MINING, ACCESS_MEDICAL, ACCESS_CONSTRUCTION, ACCESS_MAILSORTING,
 			            ACCESS_HEADS, ACCESS_HOS, ACCESS_RC_ANNOUNCE, ACCESS_KEYCARD_AUTH, ACCESS_GATEWAY, ACCESS_PILOT, ACCESS_WEAPONS)
 	minimal_player_age = 21
-	min_age_allowed = 30
+	min_age_type = JOB_MIN_AGE_COMMAND
+	blocked_race_for_job = list(SPECIES_VOX)
 	exp_requirements = 3000
 	exp_type = EXP_TYPE_SECURITY
 	disabilities_allowed = 0
-	money_factor = 7
 	outfit = /datum/outfit/job/hos
+	insurance_type = INSURANCE_TYPE_DELUXE
+
+	salary = 300
+	min_start_money = 400
+	max_start_money = 700
 
 /datum/outfit/job/hos
 	name = "Head of Security"
@@ -31,7 +36,7 @@
 
 	uniform = /obj/item/clothing/under/rank/head_of_security
 	suit = /obj/item/clothing/suit/armor/hos
-	gloves = /obj/item/clothing/gloves/color/black/hos
+	gloves = /obj/item/clothing/gloves/combat/swat
 	shoes = /obj/item/clothing/shoes/jackboots
 	head = /obj/item/clothing/head/HoS
 	l_ear = /obj/item/radio/headset/heads/hos/alt
@@ -43,7 +48,7 @@
 	l_hand = /obj/item/storage/lockbox/sibyl_system_mod
 	backpack_contents = list(
 		/obj/item/restraints/handcuffs = 1,
-		/obj/item/melee/classic_baton/telescopic = 1,
+		/obj/item/melee/baton/telescopic = 1,
 		/obj/item/security_voucher = 1
 	)
 
@@ -66,15 +71,19 @@
 	supervisors = "the head of security"
 	department_head = list(JOB_TITLE_HOS)
 	selection_color = "#edcdcd"
-	access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_ARMORY, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_MORGUE, ACCESS_WEAPONS)
-	minimal_access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_ARMORY, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_WEAPONS)
+	access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_ARMORY, ACCESS_PILOT, ACCESS_FORENSICS_LOCKERS, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_MORGUE, ACCESS_GATEWAY, ACCESS_WEAPONS)
+	minimal_access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_ARMORY, ACCESS_PILOT, ACCESS_FORENSICS_LOCKERS, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_GATEWAY, ACCESS_WEAPONS)
 	alt_titles = list("Brig Sergeant")
 	minimal_player_age = 21
-	min_age_allowed = 30
+	blocked_race_for_job = list(SPECIES_VOX)
 	exp_requirements = 2100
 	exp_type = EXP_TYPE_SECURITY
-	money_factor = 6
 	outfit = /datum/outfit/job/warden
+	insurance_type = INSURANCE_TYPE_DELUXE
+
+	salary = 170
+	min_start_money = 200
+	max_start_money = 550
 
 /datum/outfit/job/warden
 	name = "Warden"
@@ -104,8 +113,6 @@
 	dufflebag = /obj/item/storage/backpack/duffel/security
 	box = /obj/item/storage/box/survival_security/warden
 
-
-
 /datum/job/detective
 	title = JOB_TITLE_DETECTIVE
 	flag = JOB_FLAG_DETECTIVE
@@ -121,9 +128,14 @@
 	alt_titles = list("Forensic Technician")
 	minimal_player_age = 14
 	exp_requirements = 1200
+	blocked_race_for_job = list(SPECIES_VOX)
 	exp_type = EXP_TYPE_SECURITY
-	money_factor = 4
 	outfit = /datum/outfit/job/detective
+	insurance_type = INSURANCE_TYPE_DELUXE
+
+	salary = 170
+	min_start_money = 200
+	max_start_money = 550
 
 /datum/outfit/job/detective
 	name = "Detective"
@@ -143,7 +155,7 @@
 	l_hand = /obj/item/storage/briefcase/crimekit
 	backpack_contents = list(
 		/obj/item/storage/box/evidence = 1,
-		/obj/item/melee/classic_baton/telescopic = 1
+		/obj/item/melee/baton/telescopic = 1
 	)
 	satchel = /obj/item/storage/backpack/satchel_detective
 	box = /obj/item/storage/box/survival_security/detective
@@ -180,10 +192,15 @@
 	minimal_access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_WEAPONS)
 	alt_titles = list("Security Trainer","Patrol Officer", "Security Cadet")
 	minimal_player_age = 14
+	blocked_race_for_job = list(SPECIES_VOX)
 	exp_requirements = 600
 	exp_type = EXP_TYPE_CREW
-	money_factor = 3
 	outfit = /datum/outfit/job/officer
+	insurance_type = INSURANCE_TYPE_DELUXE
+
+	salary = 170
+	min_start_money = 200
+	max_start_money = 550
 
 /datum/outfit/job/officer
 	name = "Security Officer"
@@ -244,10 +261,15 @@
 	access = list(ACCESS_MEDICAL, ACCESS_MORGUE, ACCESS_SURGERY, ACCESS_CHEMISTRY, ACCESS_VIROLOGY, ACCESS_GENETICS, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_MAINT_TUNNELS)
 	minimal_access = list(ACCESS_MEDICAL, ACCESS_MORGUE, ACCESS_SURGERY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_MAINT_TUNNELS)
 	alt_titles = list("Security Medic")
+	blocked_race_for_job = list(SPECIES_VOX)
 	exp_requirements = 1800
 	exp_type = EXP_TYPE_MEDICAL
-	money_factor = 4
 	outfit = /datum/outfit/job/brigdoc
+	insurance_type = INSURANCE_TYPE_DELUXE
+
+	salary = 170
+	min_start_money = 200
+	max_start_money = 550
 
 /datum/outfit/job/brigdoc
 	name = "Brig Physician"
@@ -281,10 +303,15 @@
 	access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_MORGUE, ACCESS_WEAPONS, ACCESS_PILOT, ACCESS_EXTERNAL_AIRLOCKS)
 	minimal_access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_WEAPONS, ACCESS_PILOT, ACCESS_EXTERNAL_AIRLOCKS)
 	minimal_player_age = 7
+	blocked_race_for_job = list(SPECIES_VOX)
 	exp_requirements = 1200
 	exp_type = EXP_TYPE_SECURITY
-	money_factor = 4
 	outfit = /datum/outfit/job/pilot
+	insurance_type = INSURANCE_TYPE_DELUXE
+
+	salary = 170
+	min_start_money = 200
+	max_start_money = 550
 
 /datum/outfit/job/pilot
 	name = "Security Pod Pilot"

@@ -11,6 +11,7 @@
 	admin_only = 1
 	syndicate_command = 1
 	outfit = /datum/outfit/job/syndicateofficer
+	insurance_type = INSURANCE_TYPE_NONE
 
 /datum/job/syndicateofficer/get_access()
 	return get_syndicate_access(title)
@@ -24,7 +25,7 @@
 	neck = /obj/item/clothing/neck/cloak/syndieadm
 	back = /obj/item/storage/backpack
 	head = /obj/item/clothing/head/helmet/space/deathsquad/beret
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat/syndicate
 	shoes = /obj/item/clothing/shoes/combat
 	mask = /obj/item/clothing/mask/cigarette/cigar/havana
 	belt = /obj/item/gun/projectile/automatic/pistol/deagle/camo

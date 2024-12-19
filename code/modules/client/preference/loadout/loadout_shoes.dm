@@ -69,3 +69,11 @@
 /datum/gear/shoes/leather_boots
 	display_name = "high leather boots"
 	path = /obj/item/clothing/shoes/leather_boots
+
+/datum/gear/shoes/footwraps
+	display_name = "cloth footwraps, color"
+	path = /obj/item/clothing/shoes/footwraps
+
+/datum/gear/shoes/footwraps/New()
+	..()
+	gear_tweaks += new /datum/gear_tweak/color(parent = src)

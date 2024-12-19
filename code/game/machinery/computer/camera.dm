@@ -2,7 +2,7 @@
 
 /obj/machinery/computer/security
 	name = "security camera console"
-	desc = "Used to access the various cameras networks on the station."
+	desc = "Используется для доступа к сетям камер на станции."
 
 	icon_keyboard = "security_key"
 	icon_screen = "cameras"
@@ -46,9 +46,8 @@
 	. = ..()
 	update_camera_view()
 
-/obj/machinery/computer/security/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	// Update UI
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/computer/security/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	// Show static if can't use the camera
 	if(!active_camera?.can_use())
 		show_camera_static()
@@ -67,8 +66,13 @@
 		cam_screen.display_to(user)
 		user.client.register_map_obj(cam_background)
 		// Open UI
-		ui = new(user, src, ui_key, "CameraConsole", name, 1200, 600, master_ui, state)
+		ui = new(user, src, "CameraConsole", name)
 		ui.open()
+
+/obj/machinery/computer/security/ui_assets(mob/user)
+	return list(
+		get_asset_datum(/datum/asset/simple/nanomaps)
+	)
 
 /obj/machinery/computer/security/ui_close(mob/user)
 	..()
@@ -194,7 +198,7 @@
 // Other computer monitors.
 /obj/machinery/computer/security/telescreen
 	name = "telescreen"
-	desc = "Used for watching camera networks."
+	desc = "Используется для просмотра сети камер."
 	icon_state = "telescreen_console"
 	icon_screen = "telescreen"
 	icon_keyboard = null
@@ -224,7 +228,7 @@
 
 /obj/machinery/computer/security/telescreen/entertainment
 	name = "entertainment monitor"
-	desc = "Damn, they better have Paradise TV on these things."
+	desc = "Чёрт возьми, лучше бы они показывали Paradise TV."
 	icon_state = "entertainment_console"
 	icon_screen = "entertainment_off"
 	light_color = "#FFEEDB"
@@ -232,46 +236,78 @@
 	network = list("news")
 	layer = 4 //becouse of plasma glass with layer = 3
 	circuit = /obj/item/circuitboard/camera/telescreen/entertainment
-	/// Icon utilised when feeds_on is true
+	/// Icon utilised when `GLOB.active_video_cameras` list have anything inside.
 	var/icon_screen_on = "entertainment"
-	/// Used to detect how many video cameras are active
-	var/feeds_on = 0
 
+/obj/machinery/computer/security/telescreen/entertainment/Initialize()
+	. = ..()
+	RegisterSignal(src, COMSIG_MOB_ATTACKED_RANGED, PROC_REF(on_ranged_attack))
+
+/obj/machinery/computer/security/telescreen/entertainment/Destroy()
+	. = ..()
+	UnregisterSignal(src, COMSIG_MOB_ATTACKED_RANGED)
+
+/obj/machinery/computer/security/telescreen/entertainment/proc/on_ranged_attack(datum/source, mob/user, params)
+	SIGNAL_HANDLER
+
+	if(stat)
+		user.unset_machine()
+		return
+
+	INVOKE_ASYNC(src, TYPE_PROC_REF(/datum, ui_interact), user)
 
 /obj/machinery/computer/security/telescreen/entertainment/update_overlays()
-	icon_screen = feeds_on ? icon_screen_on : initial(icon_screen)
+	icon_screen = length(GLOB.active_video_cameras) ? icon_screen_on : initial(icon_screen)
 	return ..()
 
+/obj/machinery/computer/security/telescreen/entertainment/ui_state(mob/user)
+	if(issilicon(user))
+		if(isAI(user))
+			var/mob/living/silicon/ai/AI = user
+			if(!AI.lacks_power() || AI.apc_override)
+				return GLOB.always_state
+
+		if(isrobot(user))
+			return GLOB.always_state
+
+	else if(ishuman(user))
+		if(get_dist(src, user) > 6)
+			return GLOB.default_state
+
+		if(!stat)
+			return GLOB.range_state
+
+	return GLOB.default_state
 
 /obj/machinery/computer/security/telescreen/singularity
 	name = "Singularity Engine Telescreen"
-	desc = "Used for watching the singularity chamber."
+	desc = "Используется для наблюдения за зоной содержания сингулярности."
 	network = list("Singularity")
 	circuit = /obj/item/circuitboard/camera/telescreen/singularity
 
 /obj/machinery/computer/security/telescreen/toxin_chamber
 	name = "Toxins Telescreen"
-	desc = "Used for watching the test chamber."
+	desc = "Используется для наблюдения за полигоном."
 	network = list("Toxins")
 
 /obj/machinery/computer/security/telescreen/test_chamber
 	name = "Test Chamber Telescreen"
-	desc = "Used for watching the test chamber."
+	desc = "Используется для наблюдения за полигоном."
 	network = list("TestChamber")
 
 /obj/machinery/computer/security/telescreen/research
 	name = "Research Monitor"
-	desc = "Used for watching the RD's goons from the safety of his office."
+	desc = "С помощью этого монитора Директор Исследований может наблюдать за своими подхалимами из безопасного места."
 	network = list("Research","Research Outpost","RD")
 
 /obj/machinery/computer/security/telescreen/prison
 	name = "Prison Monitor"
-	desc = "Used for watching Prison Wing holding areas."
+	desc = "Используется для мониторинга помещений тюремного блока."
 	network = list("Prison")
 
 /obj/machinery/computer/security/wooden_tv
 	name = "security camera monitor"
-	desc = "An old TV hooked into the station's camera network."
+	desc = "Старый телевизор, подключенный к сети камер станции."
 	icon_state = "television"
 	icon_keyboard = null
 	icon_screen = "detective_tv"
@@ -282,7 +318,7 @@
 
 /obj/machinery/computer/security/mining
 	name = "outpost camera monitor"
-	desc = "Used to access the various cameras on the outpost."
+	desc = "Используется для доступа к различным камерам на аванпосте."
 	icon_keyboard = "mining_key"
 	icon_screen = "mining"
 	light_color = "#F9BBFC"
@@ -291,7 +327,7 @@
 
 /obj/machinery/computer/security/engineering
 	name = "engineering camera monitor"
-	desc = "Used to monitor fires and breaches."
+	desc = "Используется для отслеживания возникающих пожаров и аварий."
 	icon_keyboard = "power_key"
 	icon_screen = "engie_cams"
 	light_color = "#FAC54B"

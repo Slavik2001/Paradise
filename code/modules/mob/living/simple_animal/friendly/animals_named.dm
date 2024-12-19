@@ -55,6 +55,7 @@
 /mob/living/simple_animal/pet/cat/white/Penny
 	name = "Копейка"
 	desc = "Любит таскать монетки и мелкие предметы. Успевайте прятать их!"
+	icon_state = "penny"
 	unique_pet = TRUE
 	gold_core_spawnable = NO_SPAWN
 	resting = TRUE
@@ -62,6 +63,7 @@
 /mob/living/simple_animal/pet/cat/birman/Crusher
 	name = "Бедокур"	//Не цель для воров
 	desc = "Любит крушить всё что не прикручено. Нужно вовремя прибираться."
+	icon_state = "crusher"
 	unique_pet = TRUE
 	gold_core_spawnable = NO_SPAWN
 	resting = TRUE
@@ -105,7 +107,7 @@
 	desc = "Когда-то это был напарник самой сообразительной крысы в мире. К сожалению он таковым не являлся..."
 	anchored = TRUE
 
-/mob/living/simple_animal/mouse/rat/gray/Ratatui
+/mob/living/simple_animal/mouse/rat/Ratatui
 	name = "Рататуй"
 	real_name = "Рататуй"
 	desc = "Личная крыса шеф повара, помогающая ему при готовке наиболее изысканных блюд. До момента пока он не пропадет и повар не начнет готовить что-то новенькое..."

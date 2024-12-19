@@ -127,7 +127,6 @@
 	if(z != level_name_to_num(CENTCOMM))		//we only sell when we are -at- centcomm
 		return TRUE
 
-	var/intel_count = 0
 	var/crate_count = 0
 	var/quest_reward
 
@@ -158,16 +157,17 @@
 				if(find_slip && istype(thing,/obj/item/paper/manifest))
 					var/obj/item/paper/manifest/slip = thing
 					// TODO: Check for a signature, too.
-					if(length(slip.stamped)) //yes, the clown stamp will work. clown is the highest authority on the station, it makes sense
+					var/slip_stamped_len = LAZYLEN(slip.stamped)
+					if(slip_stamped_len) //yes, the clown stamp will work. clown is the highest authority on the station, it makes sense
 						// Did they mark it as erroneous?
 						var/denied = FALSE
-						for(var/i in 1 to length(slip.stamped))
+						for(var/i in 1 to slip_stamped_len)
 							if(slip.stamped[i] == /obj/item/stamp/denied)
 								denied = TRUE
 						if(slip.erroneous && denied) // Caught a mistake by Centcom (IDEA: maybe Centcom rarely gets offended by this)
 							pointsEarned = slip.points - SSshuttle.points_per_crate
 							SSshuttle.points += pointsEarned // For now, give a full refund for paying attention (minus the crate cost)
-							msg += "<span class='good'>+[pointsEarned]</span>: Station correctly denied package [slip.ordernumber]: "
+							msg += "[span_good("+[pointsEarned]")]: Station correctly denied package [slip.ordernumber]: "
 							if(slip.erroneous & MANIFEST_ERROR_NAME)
 								msg += "Destination station incorrect. "
 							else if(slip.erroneous & MANIFEST_ERROR_COUNT)
@@ -177,10 +177,10 @@
 							msg += "Points refunded.<br>"
 						else if(!slip.erroneous && !denied) // Approving a proper order awards the relatively tiny points_per_slip
 							SSshuttle.points += SSshuttle.points_per_slip
-							msg += "<span class='good'>+[SSshuttle.points_per_slip]</span>: Package [slip.ordernumber] accorded.<br>"
+							msg += "[span_good("+[SSshuttle.points_per_slip]")]: Package [slip.ordernumber] accorded.<br>"
 						else // You done goofed.
 							if(slip.erroneous)
-								msg += "<span class='good'>+0</span>: Station approved package [slip.ordernumber] despite error: "
+								msg += "[span_good("+0")]: Station approved package [slip.ordernumber] despite error: "
 								if(slip.erroneous & MANIFEST_ERROR_NAME)
 									msg += "Destination station incorrect."
 								else if(slip.erroneous & MANIFEST_ERROR_COUNT)
@@ -191,13 +191,17 @@
 							else
 								pointsEarned = round(SSshuttle.points_per_crate - slip.points)
 								SSshuttle.points += pointsEarned
-								msg += "<span class='bad'>[pointsEarned]</span>: Station denied package [slip.ordernumber]. Our records show no fault on our part.<br>"
+								msg += "[span_bad("[pointsEarned]")]: Station denied package [slip.ordernumber]. Our records show no fault on our part.<br>"
 						find_slip = FALSE
 					continue
 
-				// Sell syndicate intel
-				if(istype(thing, /obj/item/documents/syndicate))
-					++intel_count
+				// Sell intel
+				if(istype(thing, /obj/item/documents))
+					var/obj/item/documents/docs = thing
+					if(INTEREST_NANOTRASEN & docs.sell_interest)
+						pointsEarned = round(SSshuttle.points_per_intel * docs.sell_multiplier)
+						SSshuttle.points += pointsEarned
+						msg += "[span_good("+[pointsEarned]")]: Received important intelligence.<br>"
 
 				// Send tech levels
 				if(istype(thing, /obj/item/disk/tech_disk))
@@ -206,31 +210,47 @@
 					var/datum/tech/tech = disk.stored
 
 					var/cost = tech.getCost(SSshuttle.techLevels[tech.id])
+					if(tech.level >= 7)
+						SScapitalism.base_account.credit(7000, "Благодарность за вклад в науку.", "Nanotrasen Institute terminal#[rand(111,333)]", "Nanotrasen Institute")
 					if(cost)
 						SSshuttle.techLevels[tech.id] = tech.level
 						for(var/mob/mob in GLOB.player_list)
 							if(!mob.mind)
 								continue
 							for(var/datum/job_objective/further_research/objective in mob.mind.job_objectives)
-								objective.unit_completed(cost)
+								objective.unit_completed(round(cost / 3))
 						msg += "[tech.name] - new data.<br>"
+
+		if(istype(MA, /obj/structure/closet/critter/mecha))
+			var/obj/structure/closet/critter/mecha/crate = MA
+			if(crate.console && crate.quest)
+				for(var/category in crate.quest.reward)
+					crate.quest.reward[category] -= crate.penalty
+					if(crate.quest.reward[category] < 0)
+						crate.quest.reward[category] = 0
+					crate.console.points[category] += crate.quest.reward[category]
+				pointsEarned = crate.quest.reward["robo"] * 30
+				SSshuttle.points += pointsEarned
+				if(crate.quest.id)
+					var/datum/money_account/A = get_money_account(crate.quest.id.associated_account_number)
+					if(A)
+						A.money += crate.quest.maximum_cash - round(crate.quest.maximum_cash * crate.penalty / 4)
+				SSshuttle.cargo_money_account.money += crate.quest.maximum_cash - round(crate.quest.maximum_cash * crate.penalty / 4)
+				crate.console.on_quest_complete()
+				msg += "[span_good("+[pointsEarned]")]: Received requested mecha: [crate.quest.name].<br>"
+				crate.quest.id.robo_bounty = null
+				crate.quest = null
 
 		qdel(MA, force = TRUE)
 		SSshuttle.sold_atoms += "."
 
-
-	if(intel_count > 0)
-		pointsEarned = round(intel_count * SSshuttle.points_per_intel)
-		msg += "<span class='good'>+[pointsEarned]</span>: Received [intel_count] article(s) of enemy intelligence.<br>"
-		SSshuttle.points += pointsEarned
-
 	if(quest_reward > 0)
-		msg += "<span class='good'>+[quest_reward]</span>: Received reward points for quests.<br>"
+		msg += "[span_good("+[quest_reward]")]: Received reward points for quests.<br>"
 		SSshuttle.points += quest_reward
 
 	if(crate_count > 0)
 		pointsEarned = round(crate_count * SSshuttle.points_per_crate)
-		msg += "<span class='good'>+[pointsEarned]</span>: Received [crate_count] crate(s).<br>"
+		msg += "[span_good("+[pointsEarned]")]: Received [crate_count] crate(s).<br>"
 		SSshuttle.points += pointsEarned
 
 	SSshuttle.centcom_message += "[msg]<hr>"
@@ -355,7 +375,7 @@
  **************************/
 /obj/machinery/computer/supplycomp
 	name = "Supply Shuttle Console"
-	desc = "Used to order supplies."
+	desc = "Используется для оформления заказов."
 	icon_screen = "supply"
 	req_access = list(ACCESS_CARGO)
 	circuit = /obj/item/circuitboard/supplycomp
@@ -368,19 +388,30 @@
 
 /obj/machinery/computer/supplycomp/public
 	name = "Supply Ordering Console"
-	desc = "Used to order supplies from cargo staff."
+	desc = "Используется для оформления заказов. Предназначено для общего пользования."
 	icon = 'icons/obj/machines/computer.dmi'
 	icon_screen = "request"
 	circuit = /obj/item/circuitboard/ordercomp
 	req_access = list()
 	is_public = TRUE
 
+
+/obj/machinery/computer/supplycomp/Initialize(mapload, obj/structure/computerframe/frame)
+	. = ..()
+
+	var/obj/item/circuitboard/supplycomp/my_circuit = src.frame.circuit
+	if(!istype(my_circuit))
+		return
+
+	can_order_contraband = my_circuit.contraband_enabled
+
+
 /obj/machinery/computer/supplycomp/attack_ai(var/mob/user as mob)
 	return attack_hand(user)
 
 /obj/machinery/computer/supplycomp/attack_hand(var/mob/user as mob)
 	if(!allowed(user) && !isobserver(user))
-		to_chat(user, "<span class='warning'>Access denied.</span>")
+		to_chat(user, span_warning("Access denied."))
 		playsound(src, pick('sound/machines/button.ogg', 'sound/machines/button_alternate.ogg', 'sound/machines/button_meloboom.ogg'), 20)
 		return 1
 
@@ -395,14 +426,14 @@
 	if(!hacked)
 		add_attack_logs(user, src, "emagged")
 		if(user)
-			to_chat(user, "<span class='notice'>Special supplies unlocked.</span>")
+			to_chat(user, span_notice("Special supplies unlocked."))
 		hacked = TRUE
 		return
 
-/obj/machinery/computer/supplycomp/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/computer/supplycomp/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "CargoConsole", name, 900, 800, master_ui, state)
+		ui = new(user, src, "CargoConsole", name)
 		ui.open()
 
 /obj/machinery/computer/supplycomp/ui_data(mob/user)
@@ -456,6 +487,8 @@
 	var/list/categories = list() // meow
 	for(var/category in GLOB.all_supply_groups)
 		categories.Add(list(list("name" = get_supply_group_name(category), "category" = category)))
+	if(!(src.can_order_contraband))
+		categories.Cut(SUPPLY_CONTRABAND) //cutting contraband category
 	data["categories"] = categories
 
 	return data
@@ -469,7 +502,7 @@
 
 	return FALSE
 
-/obj/machinery/computer/supplycomp/ui_act(action, list/params)
+/obj/machinery/computer/supplycomp/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	if(..())
 		return
 
@@ -490,7 +523,7 @@
 			if(is_public)
 				return
 			if(SSshuttle.supply.canMove())
-				to_chat(usr, "<span class='warning'>For safety reasons the automated supply shuttle cannot transport live organisms, classified nuclear weaponry or homing beacons.</span>")
+				to_chat(usr, span_warning("For safety reasons the automated supply shuttle cannot transport live organisms, classified nuclear weaponry or homing beacons."))
 			else if(SSshuttle.supply.getDockedId() == "supply_home")
 				SSshuttle.toggleShuttle("supply", "supply_home", "supply_away", 1)
 				investigate_log("[key_name_log(usr)] has sent the supply shuttle away. Remaining points: [SSshuttle.points]. Shuttle contents: [SSshuttle.sold_atoms]", INVESTIGATE_CARGO)
@@ -516,16 +549,15 @@
 
 
 			var/amount = 1
-			if(params["multiple"] == "1") // 1 is a string here. DO NOT MAKE THIS A BOOLEAN YOU DORK
-				var/num_input = input(usr, "Amount", "How many crates? (20 Max)") as null|num
-				if(!num_input || (!is_public && !is_authorized(usr)) || ..()) // Make sure they dont walk away
+			if(params["multiple"])
+				var/num_input = tgui_input_number(ui.user, "Amount", "How many crates?", max_value = 20, min_value = 1)
+				if(isnull(num_input) || (!is_public && !is_authorized(ui.user)) || ..()) // Make sure they dont walk away
 					return
-				amount = clamp(round(num_input), 1, 20)
+				amount = num_input
 
-
-			var/timeout = world.time + 600 // If you dont type the reason within a minute, theres bigger problems here
-			var/reason = input(usr, "Reason", "Why do you require this item?","") as null|text
-			if(world.time > timeout || !reason || (!is_public && !is_authorized(usr)) || ..())
+			var/timeout = world.time + (60 SECONDS) // If you dont type the reason within a minute, theres bigger problems here
+			var/reason = tgui_input_text(ui.user, "Reason", "Why do you require this item?", encode = FALSE, timeout = timeout)
+			if(!reason || (!is_public && !is_authorized(ui.user)) || ..())
 				// Cancel if they take too long, they dont give a reason, they aint authed, or if they walked away
 				return
 			reason = sanitize(copytext_char(reason, 1, 100)) //Preventing tgui overflow

@@ -20,6 +20,8 @@
 	phase_state = "phazon-phase"
 	max_equip = 3
 
+	mech_type = MECH_TYPE_PHAZON
+
 /obj/mecha/combat/phazon/GrantActions(mob/living/user, human_occupant = 0)
 	..()
 	phasing_action.Grant(user, src)
@@ -41,7 +43,7 @@
 	var/output = {"<div class='wr'>
 						<div class='header'>Special</div>
 						<div class='links'>
-						<a href='?src=[UID()];switch_damtype=1'>Change melee damage type</a><br>
+						<a href='byond://?src=[UID()];switch_damtype=1'>Change melee damage type</a><br>
 						</div>
 						</div>
 						"}

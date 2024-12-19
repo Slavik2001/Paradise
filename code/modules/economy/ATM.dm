@@ -11,6 +11,7 @@ log transactions
 #define CHANGE_SECURITY_LEVEL 1
 #define TRANSFER_FUNDS 2
 #define VIEW_TRANSACTION_LOGS 3
+#define CHANGE_INSURANCE_TYPE 4
 #define PRINT_DELAY 100
 #define LOCKOUT_TIME 120
 
@@ -77,9 +78,15 @@ log transactions
 
 /obj/machinery/atm/proc/reconnect_database()
 	for(var/obj/machinery/computer/account_database/DB in GLOB.machines)
-		if(DB.z == z && !(DB.stat & NOPOWER) && DB.activated)
+		if(DB.stat & NOPOWER || !DB.activated)
+			continue
+		if(is_station_level(z) && is_station_level(DB.z))
 			linked_db = DB
 			break
+		else
+			if(DB.z == z)
+				linked_db = DB
+				break
 
 
 /obj/machinery/atm/update_icon_state()
@@ -107,33 +114,38 @@ log transactions
 
 
 /obj/machinery/atm/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/card))
-		if(!powered())
-			return
-
-		if(!held_card)
-			add_fingerprint(user)
-			user.drop_transfer_item_to_loc(I, src)
-			held_card = I
-			if(authenticated_account && held_card.associated_account_number != authenticated_account.account_number)
-				authenticated_account = null
-			SStgui.update_uis(src)
-	else if(authenticated_account)
-		if(istype(I, /obj/item/stack/spacecash))
-			//consume the money
-			if(!powered())
-				return
-			add_fingerprint(user)
-			var/obj/item/stack/spacecash/C = I
-			playsound(loc, pick('sound/items/polaroid1.ogg', 'sound/items/polaroid2.ogg'), 50, TRUE)
-
-			authenticated_account.credit(C.amount, "Credit deposit", machine_id, authenticated_account.owner_name)
-
-			to_chat(user, "<span class='notice'>You insert [C] into [src].</span>")
-			SStgui.update_uis(src)
-			C.use(C.amount)
-	else
+	if(user.a_intent == INTENT_HARM || !powered())
 		return ..()
+
+	if(istype(I, /obj/item/card))
+		add_fingerprint(user)
+		if(held_card)
+			to_chat(user, span_warning("The [name] is already holding another ID-card."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		held_card = I
+		if(authenticated_account && held_card.associated_account_number != authenticated_account.account_number)
+			authenticated_account = null
+		SStgui.update_uis(src)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(istype(I, /obj/item/stack/spacecash))
+		add_fingerprint(user)
+		var/obj/item/stack/spacecash/cash = I
+		if(!authenticated_account)
+			to_chat(user, span_warning("You should insert ID-card and login first."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(cash, src))
+			return ..()
+		to_chat(user, span_notice("You have inserted [cash] into [src]."))
+		playsound(loc, pick('sound/items/polaroid1.ogg', 'sound/items/polaroid2.ogg'), 50, TRUE)
+		authenticated_account.credit(cash.amount, "Credit deposit", machine_id, authenticated_account.owner_name)
+		SStgui.update_uis(src)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/machinery/atm/attack_hand(mob/user)
 	if(..())
@@ -148,10 +160,10 @@ log transactions
 /obj/machinery/atm/attack_ghost(mob/user)
 	ui_interact(user)
 
-/obj/machinery/atm/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
-	if (!ui)
-		ui = new(user, src, ui_key, "ATM", name, 550, 650)
+/obj/machinery/atm/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "ATM", name)
 		ui.open()
 
 /obj/machinery/atm/ui_data(mob/user)
@@ -166,6 +178,8 @@ log transactions
 	if(authenticated_account)
 		data["owner_name"] = authenticated_account.owner_name
 		data["money"] = authenticated_account.money
+		data["insurance"] = authenticated_account.insurance
+		data["insurance_type"] = authenticated_account.insurance_type
 		data["security_level"] = authenticated_account.security_level
 
 		var/list/trx = list()
@@ -203,7 +217,7 @@ log transactions
 				to_chat(usr, "[bicon(src)]<span class='warning'>You don't have enough funds to do that!</span>")
 
 		if("view_screen")
-			var/list/valid_screen = list(DEFAULT_SCREEN, CHANGE_SECURITY_LEVEL, TRANSFER_FUNDS, VIEW_TRANSACTION_LOGS)
+			var/list/valid_screen = list(DEFAULT_SCREEN, CHANGE_SECURITY_LEVEL, TRANSFER_FUNDS, VIEW_TRANSACTION_LOGS, CHANGE_INSURANCE_TYPE)
 			var/screen_proper = text2num(params["view_screen"])
 			if(screen_proper in valid_screen)
 				view_screen = screen_proper
@@ -213,8 +227,24 @@ log transactions
 
 		if("change_security_level")
 			if(authenticated_account)
-				var/new_sec_level = max(min(text2num(params["new_security_level"]), 2), 0)
+				var/new_sec_level = max(min(params["new_security_level"], 2), 0)
 				authenticated_account.security_level = new_sec_level
+
+		if("change_insurance_type")
+			if(authenticated_account)
+				var/new_insurance_type = params["new_insurance_type"]
+				var/req_money = 0
+				switch (new_insurance_type)
+					if(INSURANCE_TYPE_STANDART)
+						req_money = INSURANCE_STANDART_COST
+					if(INSURANCE_TYPE_DELUXE)
+						req_money = INSURANCE_DELUXE_COST
+
+				if(authenticated_account.charge(req_money))
+					usr.balloon_alert("Тип страховки изменен")
+					authenticated_account.insurance_type = new_insurance_type
+				else
+					usr.balloon_alert("Недостаточно средств")
 
 		if("attempt_auth")
 			if(linked_db)
@@ -284,6 +314,30 @@ log transactions
 				else
 					to_chat(usr, "[bicon(src)]<span class='warning'>You don't have enough funds to do that!</span>")
 
+		if("insurance")
+			var/amount = max(text2num(params["insurance_amount"]), 0)
+			if(amount <= 0)
+				to_chat(usr, "[bicon(src)]" + span_warning("That is not a valid amount."))
+			else if(authenticated_account && amount > 0)
+				if(amount <= authenticated_account.money)
+					playsound(src, 'sound/machines/chime.ogg', 50, TRUE)
+
+					//remove the money
+					if(amount > 100000) // prevent crashes
+						to_chat(usr, span_notice("The ATM's screen flashes, 'Лимит единоразового пополнения страховки достигнут, установка пополнения на 100,000.'"))
+						amount = 100000
+					if(authenticated_account.charge(amount, null, "Insurance replenishment", machine_id, authenticated_account.owner_name))
+						replenish_insurance(amount)
+				else
+					to_chat(usr, "[bicon(src)]" + span_warning("У вас недостаточно кредитов для этого!"))
+
+		if("insurance_replenishment")
+			authenticated_account.insurance_auto_replen = !authenticated_account.insurance_auto_replen
+			if(authenticated_account.insurance_auto_replen)
+				to_chat(usr, "[bicon(src)]" + span_warning("Автопополнение страховки включено!"))
+			else
+				to_chat(usr, "[bicon(src)]" + span_warning("Автопополнение страховки отключено!"))
+
 		if("balance_statement")
 			if(authenticated_account)
 				if(world.timeofday < lastprint + PRINT_DELAY)
@@ -301,13 +355,7 @@ log transactions
 					<i>Service terminal ID:</i> [machine_id]<br>"}
 
 				//stamp the paper
-				var/image/stampoverlay = image('icons/obj/bureaucracy.dmi')
-				stampoverlay.icon_state = "paper_stamp-cent"
-				if(!R.stamped)
-					R.stamped = new()
-				R.stamped += /obj/item/stamp
-				LAZYADD(R.stamp_overlays, stampoverlay)
-				R.stamps += "<HR><i>This paper has been stamped by the Automatic Teller Machine.</i>"
+				R.stamp(/obj/item/stamp, TRUE, "<i>This paper has been stamped by the Automatic Teller Machine.</i>", "stamp-cent")
 
 			playsound(loc, pick('sound/items/polaroid1.ogg', 'sound/items/polaroid2.ogg'), 50, TRUE)
 
@@ -335,3 +383,5 @@ log transactions
 	if(usr)
 		usr.put_in_hands(C, ignore_anim = FALSE)
 
+/obj/machinery/atm/proc/replenish_insurance(amount)
+	authenticated_account.addInsurancePoints(amount)

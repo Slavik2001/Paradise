@@ -42,9 +42,6 @@
  * Returns TRUE if any changes were made, FALSE otherwise
  */
 /mob/living/carbon/human/proc/update_gene_status(datum/dna/gene/gene, flags = NONE)
-	if(!gene.block)
-		return FALSE
-
 	// If human mob has no DNA its better runtime to tell us,
 	// since its involves some hacky code elsewhere
 	if(!dna)
@@ -55,7 +52,7 @@
 	if(!our_species)
 		CRASH("Mob [real_name] somehow has a DNA, but no species assigned.")
 
-	if((NO_DNA in our_species.species_traits))
+	if(HAS_TRAIT(src, TRAIT_NO_DNA))
 		return FALSE
 
 	// Is our gene in activation bounds?

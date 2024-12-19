@@ -22,6 +22,8 @@
 
 #define isalien(A) (istype(A, /mob/living/carbon/alien))
 
+#define isdevil(A) (istype(A, /mob/living/carbon/true_devil))
+
 #define islarva(A) (istype(A, /mob/living/carbon/alien/larva))
 
 #define isalienadult(A) (istype(A, /mob/living/carbon/alien/humanoid))
@@ -65,6 +67,8 @@
 #define isspacepod(A) (istype(A, /obj/spacepod))
 
 #define iseffect(A) (istype(A, /obj/effect))
+
+#define isvehicle(A) (istype(A, /obj/vehicle))
 
 #define isprojectile(A) (istype(A, /obj/item/projectile))
 
@@ -113,6 +117,8 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 
 #define isopenspaceturf(A) (istype(A, /turf/simulated/openspace) || istype(A, /turf/space/openspace))
 
+#define is_space_or_openspace(A) (isopenspaceturf(A) || isspaceturf(A))
+
 #define isfloorturf(A) istype(A, /turf/simulated/floor)
 
 #define iswallturf(A) istype(A, /turf/simulated/wall)
@@ -123,7 +129,7 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 
 #define isancientturf(A) istype(A, /turf/simulated/mineral/ancient)
 
-#define islava(A) (istype(A, /turf/simulated/floor/plating/lava))
+#define islava(A) (istype(A, /turf/simulated/floor/lava))
 
 #define ischasm(A) (istype(A, /turf/simulated/floor/chasm))
 
@@ -145,3 +151,5 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 
 
 #define is_ventcrawler(A) (HAS_TRAIT(A, TRAIT_VENTCRAWLER_NUDE) || HAS_TRAIT(A, TRAIT_VENTCRAWLER_ALWAYS) || HAS_TRAIT(A, TRAIT_VENTCRAWLER_ITEM_BASED) || HAS_TRAIT(A, TRAIT_VENTCRAWLER_ALIEN))
+
+#define is_multi_tile_object(atom) (atom.bound_width > world.icon_size || atom.bound_height > world.icon_size)

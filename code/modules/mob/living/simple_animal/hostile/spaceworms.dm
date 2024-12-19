@@ -24,8 +24,6 @@
 	stop_automated_movement = 1
 	animate_movement = SYNC_STEPS
 
-	minbodytemp = 0
-	maxbodytemp = 350
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
 
 	a_intent = INTENT_HARM //so they don't get pushed around
@@ -56,8 +54,14 @@
 	. = ..()
 	ADD_TRAIT(src, TRAIT_NO_FLOATING_ANIM, INNATE_TRAIT)
 
+/mob/living/simple_animal/hostile/spaceWorm/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = 350, \
+		minbodytemp = 0, \
+	)
 
-/mob/living/simple_animal/hostile/spaceWorm/Process_Spacemove(movement_dir = NONE)
+/mob/living/simple_animal/hostile/spaceWorm/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE //space worms can flyyyyyy
 
 //Worm Head, Controls the AI for the entire worm "entity"
@@ -130,8 +134,9 @@
 		attemptToEat(target)
 
 //Attempt to eat things we bump into, Mobs, Walls, Clowns
-/mob/living/simple_animal/hostile/spaceWorm/wormHead/Bump(atom/obstacle)
-	attemptToEat(obstacle)
+/mob/living/simple_animal/hostile/spaceWorm/wormHead/Bump(atom/bumped_atom)
+	. = ..()
+	attemptToEat(bumped_atom)
 
 //Attempt to eat things, only the head can eat
 /mob/living/simple_animal/hostile/spaceWorm/wormHead/proc/attemptToEat(var/atom/noms)
@@ -228,7 +233,7 @@
 
 
 //Move all segments if one piece moves.
-/mob/living/simple_animal/hostile/spaceWorm/Move()
+/mob/living/simple_animal/hostile/spaceWorm/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/segmentNextPos = loc
 	. = ..()
 	if(.)

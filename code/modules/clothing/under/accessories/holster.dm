@@ -2,7 +2,6 @@
 	name = "shoulder holster"
 	desc = "A handgun holster."
 	icon_state = "holster"
-	item_color = "holster"
 	slot = ACCESSORY_SLOT_UTILITY
 	pickup_sound = 'sound/items/handling/backpack_pickup.ogg'
 	equip_sound = 'sound/items/handling/backpack_equip.ogg'
@@ -30,7 +29,11 @@
 		return FALSE
 	return TRUE
 
+
 /obj/item/clothing/accessory/holster/attack_self(mob/user = usr)
+	. = ..()
+	if(.)
+		return .
 	var/holsteritem = user.get_active_hand()
 	if(istype(holsteritem, /obj/item/clothing/accessory/holster))
 		unholster(user)
@@ -39,21 +42,28 @@
 	else
 		unholster(user)
 
+
 /obj/item/clothing/accessory/holster/proc/holster(obj/item/I, mob/user)
+	if(istype(I, /obj/item/clothing/accessory/holster))
+		to_chat(user, span_warning("Putting holster into another holster was pretty dumb idea!"))
+		return FALSE
+
 	if(holstered.len >= max_content)
 		to_chat(user, span_warning("Holster is full!"))
-		return
+		return FALSE
 
 	if(!can_holster(I))
-		to_chat(user, span_warning("This [I] won't fit in the [src]!"))
-		return
+		to_chat(user, span_warning("The [I.name] won't fit in [src]!"))
+		return FALSE
 
-	if(!user.can_unEquip(I))
-		to_chat(user, span_warning("You can't let go of the [I]!"))
-		return
+	if(I.loc == user && !user.can_unEquip(I))
+		to_chat(user, span_warning("You cannnot let go of [I]!"))
+		return FALSE
 
+	. = TRUE
 	holstered += I
-	user.temporarily_remove_item_from_inventory(I)
+	if(I.loc == user)
+		user.temporarily_remove_item_from_inventory(I)
 	I.forceMove(src)
 	I.add_fingerprint(user)
 	user.visible_message(span_notice("[user] holsters the [I]."), span_notice("You holster the [I]."))
@@ -95,10 +105,12 @@
 
 	..(user)
 
-/obj/item/clothing/accessory/holster/attackby(obj/item/W, mob/user, params)
-	if(istype(W, src.type))
-		return
-	holster(W, user)
+
+/obj/item/clothing/accessory/holster/attackby(obj/item/I, mob/user, params)
+	if(holster(I, user))
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
+
 
 /obj/item/clothing/accessory/holster/emp_act(severity)
 	for(var/obj/item/I in holstered)
@@ -113,13 +125,19 @@
 	else
 		. += span_notice("It is empty.")
 
-/obj/item/clothing/accessory/holster/on_attached(obj/item/clothing/under/S, mob/user)
-	..()
-	has_suit.verbs += /obj/item/clothing/accessory/holster/verb/holster_verb
 
-/obj/item/clothing/accessory/holster/on_removed(mob/user, silent = FALSE)
-	has_suit.verbs -= /obj/item/clothing/accessory/holster/verb/holster_verb
-	..()
+/obj/item/clothing/accessory/holster/on_attached(obj/item/clothing/under/new_suit, mob/attacher)
+	. = ..()
+	if(.)
+		has_suit.verbs += /obj/item/clothing/accessory/holster/verb/holster_verb
+
+
+/obj/item/clothing/accessory/holster/on_removed(mob/detacher)
+	. = ..()
+	if(.)
+		var/obj/item/clothing/under/old_suit = .
+		old_suit.verbs -= /obj/item/clothing/accessory/holster/verb/holster_verb
+
 
 //For the holster hotkey
 /obj/item/clothing/accessory/holster/verb/holster_verb()
@@ -130,61 +148,53 @@
 	if(!isliving(usr) || usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 
-	var/obj/item/clothing/accessory/holster/H = null
+	var/obj/item/clothing/accessory/holster/holster
 	if(istype(src, /obj/item/clothing/accessory/holster))
-		H = src
+		holster = src
 	else if(istype(src, /obj/item/clothing/under))
-		var/obj/item/clothing/under/S = src
-		if(S.accessories.len)
-			H = locate() in S.accessories
+		var/obj/item/clothing/under/uniform = src
+		if(LAZYLEN(uniform.accessories))
+			holster = locate() in uniform.accessories
 
-	if(!H)
+	if(!holster)
 		return
 
-	H.attack_self(usr)
+	holster.attack_self(usr)
+
 
 /obj/item/clothing/accessory/holster/armpit
 	name = "shoulder holster"
 	desc = "A worn-out handgun holster. Perfect for concealed carry"
-	icon_state = "holster"
-	item_color = "holster"
 	holster_allow = /obj/item/gun/projectile
 
 /obj/item/clothing/accessory/holster/waist
 	name = "shoulder holster"
 	desc = "A handgun holster. Made of expensive leather."
-	icon_state = "holster"
-	item_color = "holster_low"
 
 /obj/item/clothing/accessory/holster/leg
 	name = "leg holster"
 	desc = "A handgun holster. This one for spies."
 	icon_state = "leg_holster"
-	item_color = "leg_holster"
 
 /obj/item/clothing/accessory/holster/leg/black
 	name = "black leg holster"
 	desc = "A handgun holster. This one for spies. Comes in stealthy black."
 	icon_state = "leg_holster_black"
-	item_color = "leg_holster_black"
 
 /obj/item/clothing/accessory/holster/belt
 	name = "belt holster"
 	desc = "A handgun holster. This one for security officers to remind some good ol' times."
 	icon_state = "belt_holster"
-	item_color = "belt_holster"
 
 /obj/item/clothing/accessory/holster/belt/black
 	name = "black belt holster"
 	desc = "A handgun holster. This one for security officers to remind some good ol' times. Comes in black, just like in the America!"
 	icon_state = "belt_holster_black"
-	item_color = "belt_holster_black"
 
 /obj/item/clothing/accessory/holster/knives
 	name = "knife holster"
 	desc = "A bunch of straps connected into one holster. Has 7 special slots for holding knives."
 	icon_state = "holsterknife"
-	item_color = "holsterknife"
 	holster_allow = list(
 		/obj/item/kitchen/knife,
 		/obj/item/kitchen/knife/combat,

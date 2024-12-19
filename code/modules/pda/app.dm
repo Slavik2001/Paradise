@@ -20,6 +20,14 @@
 /datum/data/pda/proc/program_process()
 	return
 
+/datum/data/pda/proc/on_id_updated()
+	return
+
+/datum/data/pda/proc/stamp_act(obj/item/stamp/stamp)
+	if(!istype(stamp))
+		return FALSE
+	return TRUE
+
 /datum/data/pda/proc/program_hit_check()
 	return
 
@@ -41,14 +49,14 @@
 		pda.play_ringtone()
 
 	if(blink && !(src in pda.notifying_programs))
-		pda.add_overlay(image('icons/obj/pda.dmi', "pda-r"))
 		pda.notifying_programs |= src
+		pda.update_icon(UPDATE_OVERLAYS)
+
 
 /datum/data/pda/proc/unnotify()
 	if(src in pda.notifying_programs)
 		pda.notifying_programs -= src
-		if(!pda.notifying_programs.len)
-			pda.cut_overlay(image('icons/obj/pda.dmi', "pda-r"))
+		pda.update_icon(UPDATE_OVERLAYS)
 
 
 // An app has a button on the home screen and its own UI

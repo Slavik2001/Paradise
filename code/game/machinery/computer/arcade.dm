@@ -11,15 +11,14 @@
 /obj/machinery/computer/arcade/proc/Reset()
 	return
 
-/obj/machinery/computer/arcade/New()
-	..()
+/obj/machinery/computer/arcade/Initialize(mapload)
+	. = ..()
 	if(!circuit)
 		var/choice = pick(/obj/machinery/computer/arcade/battle, /obj/machinery/computer/arcade/orion_trail)
 		new choice(loc)
-		qdel(src)
-		return
-	Reset()
+		return INITIALIZE_HINT_QDEL
 
+	Reset()
 
 /obj/machinery/computer/arcade/proc/prizevend(var/score)
 	if(!contents.len)
@@ -50,7 +49,7 @@
 
 /obj/machinery/computer/arcade/battle
 	name = "arcade machine"
-	desc = "Does not support Pinball."
+	desc = "Не поддерживает пинбол."
 	icon = 'icons/obj/machines/computer.dmi'
 	icon_state = "arcade"
 	circuit = /obj/item/circuitboard/arcade/battle
@@ -100,7 +99,6 @@
 	//onclose(user, "arcade")
 	var/datum/browser/popup = new(user, "arcade", "Space Villian 2000", 420, 280, src)
 	popup.set_content(dat)
-	popup.set_title_image(user.browse_rsc_icon(icon, icon_state))
 	popup.open()
 	return
 
@@ -279,7 +277,7 @@
 
 /obj/machinery/computer/arcade/orion_trail
 	name = "The Orion Trail"
-	desc = "Learn how our ancestors got to Orion, and have fun in the process!"
+	desc = "Узнайте, как наши предки добрались до Ориона, и повеселитесь в процессе!"
 	icon_state = "arcade"
 	circuit = /obj/item/circuitboard/arcade/orion_trail
 	var/busy = 0 //prevent clickspam that allowed people to ~speedrun~ the game.
@@ -357,7 +355,7 @@
 		gameover = 1
 		event = null
 	user.set_machine(src)
-	var/dat = {"<meta charset="UTF-8">"}
+	var/dat = {"<!DOCTYPE html><meta charset="UTF-8">"}
 	if(gameover)
 		dat = "<center><h1>Game Over</h1></center>"
 		dat += "Like many before you, your crew never made it to Orion, lost to space... <br><b>Forever</b>."
@@ -384,7 +382,7 @@
 			emagged = 0 //removes the emagged status after you lose
 			playing = 0 //also a new game
 			name = "The Orion Trail"
-			desc = "Learn how our ancestors got to Orion, and have fun in the process!"
+			desc = "Узнайте, как наши предки добрались до Ориона, и повеселитесь в процессе!"
 
 	else if(event)
 		dat = eventdat
@@ -410,7 +408,6 @@
 		dat += "<P ALIGN=Right><a href='byond://?src=[UID()];close=1'>Close</a></P>"
 	var/datum/browser/popup = new(user, "arcade", "The Orion Trail", 420, 420, src)
 	popup.set_content(dat)
-	popup.set_title_image(user.browse_rsc_icon(icon, icon_state))
 	popup.open()
 	return
 
@@ -641,7 +638,7 @@
 					atom_say("WEEWOO WEEWOO, Spaceport Security en route!")
 					for(var/i, i<=3, i++)
 						var/mob/living/simple_animal/hostile/syndicate/ranged/orion/O = new/mob/living/simple_animal/hostile/syndicate/ranged/orion(get_turf(src))
-						O.target = usr
+						O.GiveTarget(usr)
 
 
 		fuel += FU
@@ -958,7 +955,7 @@
 		prizevend(score)
 	emagged = 0
 	name = "The Orion Trail"
-	desc = "Learn how our ancestors got to Orion, and have fun in the process!"
+	desc = "Узнайте, как наши предки добрались до Ориона, и повеселитесь в процессе!"
 
 /obj/machinery/computer/arcade/orion_trail/emag_act(mob/user)
 	if(!emagged)
@@ -966,7 +963,7 @@
 		if(user)
 			to_chat(user, span_notice("You override the cheat code menu and skip to Cheat #[rand(1, 50)]: Realism Mode."))
 		name = "The Orion Trail: Realism Edition"
-		desc = "Learn how our ancestors got to Orion, and try not to die in the process!"
+		desc = "Узнайте, как наши предки добрались до Ориона, и постарайтесь не сдохнуть в процессе!"
 		newgame()
 		emagged = 1
 
@@ -1018,7 +1015,7 @@
 
 /obj/machinery/computer/arcade/orion_trail/pc_frame
 	name = "special purpose computer"
-	desc = "It will be difficult to perform calculations on this computer..."
+	desc = "Выполнять вычисления на этом компьютере будет сложно..."
 	icon = 'icons/obj/machines/computer.dmi'
 	icon_state = "aimainframe"
 
@@ -1029,7 +1026,7 @@
 
 /obj/machinery/computer/arcade/battle/pc_frame
 	name = "special purpose computer"
-	desc = "It will be difficult to perform calculations on this computer..."
+	desc = "Выполнять вычисления на этом компьютере будет сложно..."
 	icon = 'icons/obj/machines/computer.dmi'
 	icon_state = "aimainframe"
 

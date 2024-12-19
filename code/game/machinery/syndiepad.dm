@@ -2,7 +2,7 @@
 	name = "Syndicate quantum pad"
 	desc = "Syndicate redspace quantumpads! Can transport goods through galaxies and completely ignores bluespace interference!"
 	icon = 'icons/obj/telescience.dmi'
-	icon_state = "sqpad-idle"
+	icon_state = "sqpad"
 	anchored = TRUE
 	use_power = IDLE_POWER_USE
 	idle_power_usage = 200
@@ -69,10 +69,8 @@
 	E = 0
 	for(var/obj/item/stock_parts/manipulator/M in component_parts)
 		E += M.rating
-	teleport_speed = initial(teleport_speed)
-	teleport_speed -= (E*10)
-	teleport_cooldown = initial(teleport_cooldown)
-	teleport_cooldown -= (E * 56.25) //Это число гарантирует кулдаун в 2.5 секунды у телепада и в 20 секунд у карго с 8 телепадами при максимальных деталях
+	teleport_speed = max(initial(teleport_speed) - (E*10), 0)
+	teleport_cooldown = max(initial(teleport_cooldown) - (E * 56.25), 0) //Это число гарантирует кулдаун в 2.5 секунды у телепада и в 20 секунд у карго с 8 телепадами при максимальных деталях
 	if(console_link)
 		var/datum/syndie_data_storage/S = LocateDataStorage()
 		S?.sync()
@@ -86,10 +84,14 @@
 		return S
 	return null
 
+
 /obj/machinery/syndiepad/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 	return ..()
+
 
 /obj/machinery/syndiepad/crowbar_act(mob/user, obj/item/I)
 	. = TRUE
@@ -142,7 +144,7 @@
 	. = TRUE
 	if(!I.tool_use_check(user, 0))
 		return
-	default_deconstruction_screwdriver(user, "pad-idle-o", "sqpad-idle", I)
+	default_deconstruction_screwdriver(user, "pad-o", initial(icon_state), I)
 
 /obj/machinery/syndiepad/proc/pad_sync()
 	for(var/obj/machinery/syndiepad/S in GLOB.machines)
@@ -233,9 +235,9 @@
 			use_power(10000 / power_efficiency)
 			sparks()
 			linked_pad.sparks()
-			flick("sqpad-beam", src)
+			flick("[initial(icon_state)]-beam", src)
 			playsound(get_turf(src), 'sound/weapons/emitter2.ogg', 25, TRUE)
-			flick("sqpad-beam", linked_pad)
+			flick("[initial(linked_pad.icon_state)]-beam", linked_pad)
 			playsound(get_turf(linked_pad), 'sound/weapons/emitter2.ogg', 25, TRUE)
 			var/tele_success = FALSE
 

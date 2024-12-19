@@ -145,12 +145,20 @@
 		BODY_ZONE_WING,
 	)
 
+/datum/surgery/attach_robotic_limb/can_start(mob/user, mob/living/carbon/target)
+	. = ..()
+	if(!.)
+		return FALSE
+	if(HAS_TRAIT(target, TRAIT_NO_ROBOPARTS))
+		return FALSE
 
 /datum/surgery_step/limb
 	can_infect = FALSE
 
 /datum/surgery_step/limb/attach
 	name = "attach limb"
+	begin_sound = 'sound/surgery/organ2.ogg'
+	fail_sound = 'sound/effects/meatslap.ogg'
 	allowed_tools = list(/obj/item/organ/external = 100)
 
 	time = 3.2 SECONDS
@@ -177,10 +185,13 @@
 	if(isnull(organ_data))
 		to_chat(user, span_warning("[target.dna.species] don't have the anatomy for [E.name]!"))
 		return SURGERY_BEGINSTEP_ABORT
-
+	if(!istype(E, organ_data["path"]) && HAS_TRAIT(target, TRAIT_SPECIES_LIMBS))
+		to_chat(user, span_warning("Тело существа неспособно принять конечности от другого вида!"))
+		return SURGERY_BEGINSTEP_ABORT
 	user.visible_message(
 		"[user] starts attaching [E.name] to [target]'s [E.amputation_point].",
-		"You start attaching [E.name] to [target]'s [E.amputation_point]."
+		"You start attaching [E.name] to [target]'s [E.amputation_point].",
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	return ..()
 
@@ -188,7 +199,8 @@
 	var/obj/item/organ/external/E = tool
 	user.visible_message(
 		span_notice("[user] has attached [target]'s [E.name] to the [E.amputation_point]."),
-		span_notice("You have attached [target]'s [E.name] to the [E.amputation_point].")
+		span_notice("You have attached [target]'s [E.name] to the [E.amputation_point]."),
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	attach_limb(user, target, E)
 	return SURGERY_STEP_CONTINUE
@@ -197,7 +209,8 @@
 	var/obj/item/organ/external/E = tool
 	user.visible_message(
 		span_alert("[user]'s hand slips, damaging [target]'s [E.amputation_point]!"),
-		span_alert("Your hand slips, damaging [target]'s [E.amputation_point]!")
+		span_alert("Your hand slips, damaging [target]'s [E.amputation_point]!"),
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	target.apply_damage(10, BRUTE, null, sharp = TRUE)
 	return SURGERY_STEP_RETRY
@@ -243,6 +256,9 @@
 
 /datum/surgery_step/limb/connect
 	name = "connect limb"
+	begin_sound = 'sound/surgery/hemostat1.ogg'
+	end_sound = 'sound/surgery/hemostat2.ogg'
+	fail_sound = 'sound/effects/meatslap.ogg'
 	allowed_tools = list(
 		TOOL_HEMOSTAT = 100,
 		/obj/item/stack/cable_coil = 90,
@@ -257,7 +273,8 @@
 	var/obj/item/organ/external/E = target.get_organ(target_zone)
 	user.visible_message(
 		"[user] starts connecting tendons and muscles in [target]'s [E.amputation_point] with [tool].",
-		"You start connecting tendons and muscle in [target]'s [E.amputation_point]."
+		"You start connecting tendons and muscle in [target]'s [E.amputation_point].",
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	return ..()
 
@@ -265,7 +282,8 @@
 	var/obj/item/organ/external/E = target.get_organ(target_zone)
 	user.visible_message(
 		span_notice("[user] has connected tendons and muscles in [target]'s [E.amputation_point] with [tool]."),
-		span_notice("You have connected tendons and muscles in [target]'s [E.amputation_point] with [tool].")
+		span_notice("You have connected tendons and muscles in [target]'s [E.amputation_point] with [tool]."),
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	E.properly_attached = TRUE
 	target.update_body()
@@ -277,7 +295,8 @@
 	var/obj/item/organ/external/E = target.get_organ(target_zone)
 	user.visible_message(
 		span_alert("[user]'s hand slips, damaging [target]'s [E.amputation_point]!"),
-		span_alert("Your hand slips, damaging [target]'s [E.amputation_point]!")
+		span_alert("Your hand slips, damaging [target]'s [E.amputation_point]!"),
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	target.apply_damage(10, BRUTE, null, sharp = TRUE)
 	return SURGERY_STEP_RETRY
@@ -298,29 +317,36 @@
 
 	user.visible_message(
 		"[user] starts attaching \the [tool] to [target].",
-		"You start attaching \the [tool] to [target]."
+		"You start attaching \the [tool] to [target].",
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	return ..()
+
 
 /datum/surgery_step/limb/mechanize/end_step(mob/living/user, mob/living/carbon/human/target, target_zone, obj/item/tool)
 	var/obj/item/robot_parts/L = tool
 	user.visible_message(
 		span_notice("[user] has attached \the [tool] to [target]."),
-		span_notice("You have attached \the [tool] to [target].")
+		span_notice("You have attached \the [tool] to [target]."),
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 
 	if(L.part)
 		for(var/part_name in L.part)
 			if(!isnull(target.get_organ(part_name)))
 				continue
+
 			var/list/organ_data = target.dna.species.has_limbs[part_name]
 			if(!organ_data)
 				continue
+
 			var/new_limb_type = organ_data["path"]
-			var/obj/item/organ/external/new_limb = new new_limb_type(target)
+			var/obj/item/organ/external/new_limb = new new_limb_type(target, ORGAN_MANIPULATION_DEFAULT)
 			new_limb.robotize(company = L.model_info)
+
 			if(L.sabotaged)
-				new_limb.sabotaged = 1
+				new_limb.sabotaged = TRUE
+
 	target.update_body()
 	target.updatehealth()
 	target.UpdateDamageIcon()
@@ -329,10 +355,12 @@
 
 	return SURGERY_STEP_CONTINUE
 
+
 /datum/surgery_step/limb/mechanize/fail_step(mob/living/user, mob/living/carbon/human/target, target_zone, obj/item/tool)
 	user.visible_message(
 		span_alert("[user]'s hand slips, damaging [target]'s flesh!"),
-		span_alert("Your hand slips, damaging [target]'s flesh!")
+		span_alert("Your hand slips, damaging [target]'s flesh!"),
+		chat_message_type = MESSAGE_TYPE_COMBAT
 	)
 	target.apply_damage(10, BRUTE, null, sharp = TRUE)
 	return SURGERY_STEP_RETRY

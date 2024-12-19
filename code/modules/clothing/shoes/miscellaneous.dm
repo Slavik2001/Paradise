@@ -79,7 +79,7 @@
 
 /obj/item/clothing/shoes/clown_shoes/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg' = 1, 'sound/effects/clownstep2.ogg' = 1), 50, falloff_exponent = 20) //die off quick please
+	AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg', 'sound/effects/clownstep2.ogg'), 50, falloff_exponent = 20) //die off quick please
 
 /obj/item/clothing/shoes/clown_shoes/equipped(mob/user, slot, initial)
 	. = ..()
@@ -184,15 +184,21 @@
 	icon_state = "explorer"
 	resistance_flags = FIRE_PROOF
 
-/obj/item/clothing/shoes/workboots/mining/attackby(obj/item/C as obj, mob/user as mob, params)
-	..()
-	if(istype(C, /obj/item/kitchen/knife/combat/survival))
-		var/obj/item/kitchen/knife/combat/survival/O = locate() in src
-		if(O)
-			to_chat(user, "<span class='notice'>В креплении уже есть нож.</span>")
-		else
-			user.drop_transfer_item_to_loc(C, src)
-			to_chat(user, "<span class='notice'>Вы убрали [C] в [src].</span>")
+
+/obj/item/clothing/shoes/workboots/mining/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/kitchen/knife/combat/survival))
+		add_fingerprint(user)
+		var/obj/item/kitchen/knife/combat/survival/knife = locate() in src
+		if(knife)
+			to_chat(user, span_warning("В креплении уже есть нож."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		to_chat(user, span_notice("Вы убрали нож внутрь ботинка."))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/clothing/shoes/workboots/mining/verb/verb_remove_knife()
 	set category = "Object"
@@ -206,7 +212,7 @@
 	if(can_use(user))
 		var/obj/item/kitchen/knife/combat/survival/O = locate() in src
 		if(O)
-			to_chat(user, "<span class='notice'>Вы извлекли [O] из [src].</span>")
+			to_chat(user, "<span class='notice'>Вы извлекли нож из ботинка.</span>")
 			O.forceMove_turf()
 			if(istype(loc, /mob))
 				var/mob/M = loc
@@ -296,15 +302,6 @@
 	item_color = "noble_boot"
 	item_state = "noble_boot"
 
-/obj/item/clothing/shoes/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/stack/tape_roll) && !silence_steps)
-		var/obj/item/stack/tape_roll/TR = I
-		if((!silence_steps) && TR.use(4))
-			silence_steps = TRUE
-			GetComponent(/datum/component/jackboots)?.RemoveComponent()
-			to_chat(user, "You tape the soles of [src] to silence your footsteps.")
-	else
-		return ..()
 
 /obj/item/clothing/shoes/sandal/white
 	name = "White Sandals"
@@ -335,7 +332,7 @@
 /obj/item/clothing/shoes/cursedclown/Initialize(mapload)
 	. = ..()
 	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
-	AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg' = 1, 'sound/effects/clownstep2.ogg' = 1), 50, falloff_exponent = 20) //die off quick please
+	AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg', 'sound/effects/clownstep2.ogg'), 50, falloff_exponent = 20) //die off quick please
 
 /obj/item/clothing/shoes/singery
 	name = "yellow performer's boots"
@@ -402,51 +399,27 @@
 		/obj/item/clothing/shoes/cowboy/lizardmasterwork = 1)
 
 /obj/item/clothing/shoes/footwraps
- 	name = "cloth footwraps"
- 	desc = "A roll of treated canvas used for wrapping claws or paws."
- 	icon_state = "clothwrap"
- 	item_state = "clothwrap"
- 	force = 0
- 	silence_steps = TRUE
- 	w_class = WEIGHT_CLASS_SMALL
+	name = "cloth footwraps"
+	desc = "A roll of treated canvas used for wrapping claws or paws."
+	icon_state = "clothwrap"
+	item_state = "clothwrap"
+	force = 0
+	silence_steps = TRUE
+	w_class = WEIGHT_CLASS_SMALL
+	var/paintable = TRUE
 
-/obj/item/clothing/shoes/footwraps/yellow
- 	name = "yellow cloth footwraps"
- 	icon_state = "yellow_wrap"
- 	item_state = "yellow_wrap"
-
-/obj/item/clothing/shoes/footwraps/silver
- 	name = "silver cloth footwraps"
- 	icon_state = "silver_wrap"
- 	item_state = "silver_wrap"
-
-/obj/item/clothing/shoes/footwraps/red
- 	name = "red cloth footwraps"
- 	icon_state = "red_wrap"
- 	item_state = "red_wrap"
-
-/obj/item/clothing/shoes/footwraps/blue
- 	name = "blue cloth footwraps"
- 	icon_state = "blue_wrap"
- 	item_state = "blue_wrap"
-
-/obj/item/clothing/shoes/footwraps/black
- 	name = "black cloth footwraps"
- 	icon_state = "black_wrap"
- 	item_state = "black_wrap"
-
-/obj/item/clothing/shoes/footwraps/brown
- 	name = "brown cloth footwraps"
- 	icon_state = "brown_wrap"
- 	item_state = "brown_wrap"
+/obj/item/clothing/shoes/footwraps/ComponentInitialize()
+	if(paintable)
+		AddComponent(/datum/component/spraycan_paintable)
 
 /obj/item/clothing/shoes/footwraps/goliath
 	name = "goliath hide footwraps"
 	desc = "These wraps, made from goliath hide, make your feet feel snug and secure, while still being breathable and light."
 	icon_state = "footwraps_goliath"
 	item_state = "footwraps_goliath"
-	armor = list("melee" = 5, "bullet" = 5, "laser" = 10, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 10, "acid" = 0)
+	armor = list("melee" = 10, "bullet" = 10, "laser" = 15, "energy" = 5, "bomb" = 10, "bio" = 0, "rad" = 0, "fire" = 10, "acid" = 0)
 	resistance_flags = FIRE_PROOF
+	paintable = FALSE
 
 /obj/item/clothing/shoes/footwraps/dragon
 	name = "ash drake hide footwraps"
@@ -455,6 +428,7 @@
 	item_state = "footwraps_dragon"
 	armor = list("melee" = 10, "bullet" = 10, "laser" = 15, "energy" = 10, "bomb" = 0, "bio" = 10, "rad" = 0, "fire" = 15, "acid" = 0)
 	resistance_flags = FIRE_PROOF | ACID_PROOF
+	paintable = FALSE
 
 /obj/item/clothing/shoes/bhop
 	name = "jump boots"
@@ -473,12 +447,12 @@
 	var/datum/callback/last_jump = null
 
 
-/obj/item/clothing/shoes/bhop/item_action_slot_check(slot)
+/obj/item/clothing/shoes/bhop/item_action_slot_check(slot, mob/user, datum/action/action)
 	if(slot == ITEM_SLOT_FEET)
 		return TRUE
 
 
-/obj/item/clothing/shoes/bhop/ui_action_click(mob/user, action)
+/obj/item/clothing/shoes/bhop/ui_action_click(mob/user, datum/action/action, leftclick)
 	if(!ishuman(user))
 		return
 	var/mob/living/carbon/human/jumper = user
@@ -528,13 +502,13 @@
 	var/enabled_waddle = TRUE
 	jumpdistance = 7//-1 from to see the actual distance, e.g 7 goes over 6 tiles
 
-/obj/item/clothing/shoes/bhop/clown/ui_action_click(mob/user, action)
+/obj/item/clothing/shoes/bhop/clown/ui_action_click(mob/user, datum/action/action, leftclick)
 	user.emote("flip")
 	. = ..()
 
 /obj/item/clothing/shoes/bhop/clown/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg' = 1, 'sound/effects/clownstep2.ogg' = 1), 50, falloff_exponent = 20) //die off quick please
+	AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg', 'sound/effects/clownstep2.ogg'), 50, falloff_exponent = 20) //die off quick please
 
 /obj/item/clothing/shoes/bhop/clown/equipped(mob/user, slot, initial)
 	. = ..()
@@ -566,7 +540,7 @@
 
 /obj/item/clothing/shoes/ducky/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/squeak, list('sound/items/squeaktoy.ogg' = 1), 50, falloff_exponent = 20) //die off quick please
+	AddComponent(/datum/component/squeak, list('sound/items/squeaktoy.ogg'), 50, falloff_exponent = 20) //die off quick please
 
 /obj/item/clothing/shoes/pathtreads
 	name = "pathfinder treads"
